@@ -1,6 +1,6 @@
-# SSW555-FormulaForce-RecipeMate - Backend
+# SSW555-FormulaForce-KitchenBuddiee - Backend
 
 
 ## Overview
 
-This folder contains the backend files for the RecipeMate application.
+This folder contains the backend files for the KitchenBuddiee application.
