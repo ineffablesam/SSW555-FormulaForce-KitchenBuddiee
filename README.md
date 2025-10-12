@@ -1,2 +1,2 @@
-# SSW555-FormulaForce-RecipeMate
-🥘 RecipeMate — connect, cook, and share your favorite dishes.
+# SSW555-FormulaForce-KitchenBuddiee
+🥘 KitchenBuddiee — connect, cook, and share your favorite dishes.
