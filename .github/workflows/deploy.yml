@@ -1,0 +1,36 @@
+name: Deploy Kitchen Buddie
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install Tailwind CLI
+        run: npm install -g tailwindcss
+
+      - name: Build CSS (if you use Tailwind input files)
+        run: |
+          if [ -f src/input.css ]; then
+            tailwindcss -i ./src/input.css -o ./assets/styles/output.css --minify
+          else
+            echo "No Tailwind input file found, skipping build"
+          fi
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./
