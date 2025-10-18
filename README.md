@@ -1,4 +1,5 @@
 <img width="120" alt="app-icon" src="./public/logo/logo-rounded.png">
+
 # SSW555-FormulaForce-RecipeMate
 🥘 Kitchen Buddiee — connect, cook, and share your favorite dishes.
 
