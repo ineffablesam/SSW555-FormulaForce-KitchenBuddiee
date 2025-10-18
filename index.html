@@ -1,62 +1,19 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Kitchen Buddie</title>
-    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400..800&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        brand: '#f97316',
-                    },
-                    fontFamily: {
-                        sans: ['Syne', 'sans-serif'],
-                    },
-                },
-            },
-        }
-    </script>
+    <link rel="stylesheet prefetch"
+        href="https://gist.githubusercontent.com/mfd/614e2e80a22b878bde63cb471cbe677e/raw/eef2aabfd0d588d43285431186a0cf70305ceb80/sanfrancisco-font.css">
+
+    <title>kitchen-buddiee</title>
 </head>
 
-<body class="bg-gray-50 text-gray-800 font-sans">
-    <!-- Header -->
-    <header class="bg-white shadow-sm">
-        <div class="max-w-5xl mx-auto flex items-center justify-between p-4">
-            <h1 class="text-2xl font-bold text-brand">Kitchen Buddie</h1>
-            <nav class="space-x-6">
-                <a href="#" class="hover:text-brand">Home</a>
-                <a href="#" class="hover:text-brand">Recipes</a>
-                <a href="#" class="hover:text-brand">Community</a>
-            </nav>
-        </div>
-    </header>
-
-    <!-- Main Content -->
-    <main class="max-w-5xl mx-auto mt-10 p-4 min-h-screen">
-        <h2 class="text-3xl font-semibold mb-4">Welcome to Kitchen Buddie 👋</h2>
-        <p class="text-gray-600 mb-6">
-            Discover, share, and discuss your favorite recipes with food lovers worldwide.
-        </p>
-
-        <button id="exploreBtn" class="bg-brand text-white px-5 py-2 rounded-lg hover:bg-orange-500 transition">
-            Explore Recipes
-        </button>
-    </main>
-
-    <!-- Footer -->
-    <footer class="mt-16 bg-white border-t">
-        <div class="max-w-5xl mx-auto text-center py-4 text-gray-500 text-sm">
-            © 2025 Kitchen Buddie. All rights reserved.
-        </div>
-    </footer>
-
-    <!-- JavaScript -->
-    <script src="./assets/scripts/main.js"></script>
+<body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
 </body>
 
 </html>
