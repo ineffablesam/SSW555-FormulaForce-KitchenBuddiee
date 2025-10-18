@@ -1,9 +1,9 @@
 import React from 'react'
 import Home from './pages/Home'
 import { Routes, Route, Link } from 'react-router-dom'
-import About from './pages/about'
 import { Toaster } from "sonner";
 import Auth from './pages/Auth';
+import About from './pages/About';
 import MainLayout from './MainLayout';
 import RecipeView from './pages/RecipeView';
 import NotFound from './pages/NotFound';
