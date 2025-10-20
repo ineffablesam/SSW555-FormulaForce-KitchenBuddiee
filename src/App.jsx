@@ -7,6 +7,7 @@ import About from './pages/About';
 import MainLayout from './MainLayout';
 import RecipeView from './pages/RecipeView';
 import NotFound from './pages/NotFound';
+import SignUp from './pages/SignUp';
 
 export default function App() {
   return (
@@ -19,6 +20,7 @@ export default function App() {
           <Route path="/about" element={<About />} />
           <Route path="/recipe/:id" element={<RecipeView />} />
           <Route path="*" element={<NotFound />} />
+          <Route path="/signup" element={<SignUp />} />
         </Route>
 
         {/* Routes without the header */}
