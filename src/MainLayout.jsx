@@ -81,7 +81,7 @@ export default function MainLayout() {
                                 <Search size={20} />
                             </button>
                             <Link
-                                to="/auth"
+                                to="/signin"
                                 className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg font-medium hover:bg-orange-600 transition-all duration-300 shadow-md hover:shadow-lg"
                             >
                                 <User size={20} />
@@ -131,7 +131,7 @@ export default function MainLayout() {
                                 </button>
 
                                 <Link
-                                    to="/auth"
+                                    to="/signin"
                                     className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-orange-500 text-white rounded-lg font-medium hover:bg-orange-600 transition-all duration-300 shadow-md"
                                 >
                                     <User size={20} />
