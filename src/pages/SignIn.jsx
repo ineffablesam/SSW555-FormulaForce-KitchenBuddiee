@@ -1,31 +1,21 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
-export default function SignUp() {
+export default function SignIn() {
     const navigate = useNavigate();
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
-    const [confirm, setConfirm] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
 
-    // small client-side validation rules
     const validate = () => {
-        if (!username.trim() || !password) {
-            setError('Username and password are required.');
+        if (!username.trim()) {
+            setError('Username is required.');
             return false;
         }
-        if (username.length < 3) {
-            setError('Username must be at least 3 characters.');
-            return false;
-        }
-        if (password.length < 6) {
-            setError('Password must be at least 6 characters.');
-            return false;
-        }
-        if (password !== confirm) {
-            setError("Passwords don't match.");
+        if (!password) {
+            setError('Password is required.');
             return false;
         }
         setError('');
@@ -36,11 +26,10 @@ export default function SignUp() {
         e.preventDefault();
         setSuccess('');
         if (!validate()) return;
-        setLoading(true);
 
+        setLoading(true);
         try {
-            // Adjust endpoint if your backend uses a different path
-            const res = await fetch('/api/auth/signup', {
+            const res = await fetch('/api/auth/signin', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -51,17 +40,16 @@ export default function SignUp() {
             const body = await res.json().catch(() => ({}));
 
             if (res.ok) {
-                setSuccess('Account created. Redirecting to sign-in...');
+                setSuccess('Signed in successfully! Redirecting you home...');
                 setError('');
-                // short delay so user sees the success message
-                setTimeout(() => navigate('/signin'), 1200);
+                setTimeout(() => navigate('/'), 1200);
             } else {
-                // handle common server responses
-                if (res.status === 409) {
-                    // 409 Conflict => username already exists
-                    setError(body.message || 'Username already exists.');
+                if (res.status === 404) {
+                    setError(body.message || 'User not found.');
+                } else if (res.status === 401) {
+                    setError(body.message || 'Incorrect password.');
                 } else if (res.status === 400) {
-                    setError(body.message || 'Invalid request data.');
+                    setError(body.message || 'Invalid request.');
                 } else {
                     setError(body.message || `Server error (${res.status}).`);
                 }
@@ -84,7 +72,7 @@ export default function SignUp() {
                 onSubmit={handleSubmit}
                 className="w-full max-w-md bg-white border border-gray-200 rounded-lg p-8 shadow-md"
             >
-                <h2 className="text-2xl font-semibold mb-4">Create an account</h2>
+                <h2 className="text-2xl font-semibold mb-4">Sign in to your account</h2>
 
                 {error && <div className="mb-4 text-sm text-red-600">{error}</div>}
                 {success && <div className="mb-4 text-sm text-green-600">{success}</div>}
@@ -94,7 +82,7 @@ export default function SignUp() {
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     className="w-full mb-4 px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-orange-300"
-                    placeholder="Choose a username"
+                    placeholder="Enter your username"
                     autoComplete="username"
                     aria-label="username"
                 />
@@ -104,21 +92,10 @@ export default function SignUp() {
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full mb-4 px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-orange-300"
-                    placeholder="Enter a password"
-                    autoComplete="new-password"
-                    aria-label="password"
-                />
-
-                <label className="block text-sm font-medium text-gray-700 mb-1">Confirm password</label>
-                <input
-                    type="password"
-                    value={confirm}
-                    onChange={(e) => setConfirm(e.target.value)}
                     className="w-full mb-6 px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-orange-300"
-                    placeholder="Repeat your password"
-                    autoComplete="new-password"
-                    aria-label="confirm-password"
+                    placeholder="Enter your password"
+                    autoComplete="current-password"
+                    aria-label="password"
                 />
 
                 <div className="flex items-center justify-between">
@@ -127,7 +104,7 @@ export default function SignUp() {
                         className={`bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
                         disabled={loading}
                     >
-                        {loading ? 'Creating...' : 'Create account'}
+                        {loading ? 'Signing in...' : 'Sign In'}
                     </button>
 
                     <button
@@ -140,15 +117,13 @@ export default function SignUp() {
                 </div>
 
                 <p className="mt-6 text-sm text-gray-500">
-                    Already have an account?{' '}
-                    <Link to="/signin" className="text-orange-600 hover:underline">
-                        Sign in here
+                    Don't have an account?{' '}
+                    <Link to="/signup" className="text-orange-600 hover:underline">
+                        Create one here
                     </Link>
                     .
                 </p>
             </form>
-
-            <p className="mt-6 text-xs text-gray-400">We store credentials in MongoDB on the server. Usernames must be unique.</p>
         </div>
     );
 }
