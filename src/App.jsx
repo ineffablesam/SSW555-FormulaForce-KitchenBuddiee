@@ -9,6 +9,10 @@ import RecipeView from './pages/RecipeView';
 import NotFound from './pages/NotFound';
 import SignUp from './pages/SignUp';
 import SignIn from './pages/SignIn';
+import Categories from './pages/Categories'; 
+import CategoryView from './pages/CategoryView';
+
+
 
 export default function App() {
   return (
@@ -19,6 +23,8 @@ export default function App() {
         <Route element={<MainLayout />}>
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<About />} />
+          <Route path="/categories" element={<Categories />} />
+          <Route path="/categories/:categoryName" element={<CategoryView />} />
           <Route path="/recipe/:id" element={<RecipeView />} />
           <Route path="*" element={<NotFound />} />
           <Route path="/signup" element={<SignUp />} />

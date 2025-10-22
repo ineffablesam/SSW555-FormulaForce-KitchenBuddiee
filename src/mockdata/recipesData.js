@@ -22,7 +22,8 @@ export const recipesData = [
             'Season with salt and pepper',
             'Toss cooked pasta with the sauce',
             'Garnish with fresh basil and serve hot'
-        ]
+        ],
+        categoryName: 'Italian'
     },
     {
         id: 2,
@@ -44,7 +45,8 @@ export const recipesData = [
             'Drizzle with caesar dressing and toss well',
             'Add croutons and grated parmesan',
             'Season with black pepper and serve immediately'
-        ]
+        ],
+        categoryName: 'Vegetarian'
     },
     {
         id: 3,
@@ -68,7 +70,8 @@ export const recipesData = [
             'Preheat grill to medium-high heat',
             'Grill chicken for 6-7 minutes per side until cooked through',
             'Let rest for 5 minutes before serving'
-        ]
+        ],
+        categoryName: 'Healthy'
     },
     {
         id: 4,
@@ -92,7 +95,8 @@ export const recipesData = [
             'Pour soy sauce and toss well',
             'Cook for another 2 minutes',
             'Garnish with sesame seeds and serve over rice'
-        ]
+        ],
+        categoryName: 'Vegetarian'
     },
     {
         id: 5,
@@ -116,7 +120,9 @@ export const recipesData = [
             'Mix in flour gradually',
             'Fold in chocolate chips',
             'Drop spoonfuls onto baking sheet and bake for 10-12 minutes'
-        ]
+        ],
+        categoryName: 'Desserts'
+
     },
     {
         id: 6,
@@ -140,6 +146,7 @@ export const recipesData = [
             'Top with sliced cherry tomatoes',
             'Sprinkle with red pepper flakes',
             'Serve immediately'
-        ]
+        ],
+        categoryName: 'Breakfast'
     }
 ];

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { ChefHat, Home, Info, User, Menu, X, BookOpen, Heart, Search } from 'lucide-react';
+import { ChefHat, Home, Info, User, Menu, X, BookOpen, Heart, Search, FolderOpen } from 'lucide-react';
 
 export default function MainLayout() {
     const [isOpen, setIsOpen] = useState(false);
@@ -22,6 +22,7 @@ export default function MainLayout() {
         { path: '/recipes', label: 'Recipes', icon: BookOpen },
         { path: '/favorites', label: 'Favorites', icon: Heart },
         { path: '/about', label: 'About', icon: Info },
+        { path: '/categories', label: 'Categories', icon: FolderOpen },
     ];
 
     const isActive = (path) => location.pathname === path;
