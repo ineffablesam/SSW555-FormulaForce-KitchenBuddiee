@@ -1,5 +1,5 @@
 ## Build Status
-[![CI](https://github.com/ineffablesam/SSW555-FormulaForce-KitchenBuddiee/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/ineffablesam/SSW555-FormulaForce-KitchenBuddiee/actions/workflows/ci.yml)
+![CI](https://github.com/ineffablesam/SSW555-FormulaForce-KitchenBuddiee/actions/workflows/pages/pages-build-deployment/badge.svg)
 
 <img width="120" alt="app-icon" src="./public/logo/logo-rounded.png">
 
