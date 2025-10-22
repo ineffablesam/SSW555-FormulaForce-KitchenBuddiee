@@ -1,5 +1,5 @@
 import { users } from '../config/mongoCollections.js';
-import bcrypt from 'bcryptjs';
+import bcrypt from 'bcrypt';
 const saltRounds = 16;
 
 const createStatusError = (message, status) => {
