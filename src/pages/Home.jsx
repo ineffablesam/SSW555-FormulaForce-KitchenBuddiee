@@ -1,8 +1,25 @@
 import RecipeCard from '../components/RecipeCard'
 import { ChefHat } from 'lucide-react';
 import { recipesData } from '../mockdata/recipesData';
+import { useState } from 'react';
+import AddNewRecipe from './AddNewRecipe';
+import FloatingAddRecipeButton from '../components/FloatingAddRecipeButton';
 
 export default function Home() {
+    const [showAddRecipe, setShowAddRecipe] = useState(false);
+    const handleAddRecipe = (recipeData) => {
+        console.log('New Recipe:', recipeData);
+        setShowAddRecipe(false);
+    };
+    if (showAddRecipe) {
+        return (
+            <AddNewRecipe
+                onSubmit={handleAddRecipe}
+                onCancel={() => setShowAddRecipe(false)}
+            />
+        );
+    }
+
     return (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
             <div className="mb-8 sm:mb-10">
@@ -23,6 +40,7 @@ export default function Home() {
                     <RecipeCard key={recipe.id} recipe={recipe} />
                 ))}
             </div>
+            <FloatingAddRecipeButton onClick={() => setShowAddRecipe(true)} />
         </div>
     )
 }
