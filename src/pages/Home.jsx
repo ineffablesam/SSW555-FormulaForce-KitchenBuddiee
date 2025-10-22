@@ -13,7 +13,7 @@ export default function Home() {
                     </h1>
                 </div>
                 <p className="text-gray-600 text-base sm:text-lg">
-                    Discover delicious recipes for every occasion
+                    Discover Delicious Recipes for every occasion
                 </p>
             </div>
 
