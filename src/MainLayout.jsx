@@ -1,21 +1,48 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
+<<<<<<< Updated upstream
 import { ChefHat, Home, Info, User, Menu, X, BookOpen, Heart, Search } from 'lucide-react';
+=======
+import { ChefHat, Home, Info, User, Menu, X, BookOpen, Heart, Search, FolderOpen, LogOut, HelpCircle } from 'lucide-react';
+import AuthDialog, { getCookie } from './components/AuthDialog';
+>>>>>>> Stashed changes
 
 export default function MainLayout() {
     const [isOpen, setIsOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
+    const [showAuth, setShowAuth] = useState(false);
+    const [showDropdown, setShowDropdown] = useState(false);
+    const dropdownRef = useRef(null);
+
+    const username = getCookie('username');
     const location = useLocation();
+
     useEffect(() => {
         setIsOpen(false);
+        setShowDropdown(false);
     }, [location]);
+
     useEffect(() => {
-        const handleScroll = () => {
-            setScrolled(window.scrollY > 20);
-        };
+        const handleScroll = () => setScrolled(window.scrollY > 20);
         window.addEventListener('scroll', handleScroll);
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
+
+    // Close dropdown if clicked outside
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+                setShowDropdown(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const handleSignOut = () => {
+        document.cookie = 'username=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+        window.location.reload();
+    };
 
     const navLinks = [
         { path: '/', label: 'Home', icon: Home },
@@ -29,17 +56,13 @@ export default function MainLayout() {
     return (
         <div className="min-h-screen w-full bg-gray-50 text-gray-800">
             <header
-                className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled
-                    ? 'bg-white shadow-md'
-                    : 'bg-white shadow-md'
+                className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-white shadow-md' : 'bg-white shadow-md'
                     }`}
             >
                 <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex items-center justify-between h-16 md:h-20">
-                        <Link
-                            to="/"
-                            className="flex items-center gap-2 md:gap-3 group"
-                        >
+                        {/* Logo */}
+                        <Link to="/" className="flex items-center gap-2 md:gap-3 group">
                             <div className="relative">
                                 <ChefHat
                                     size={32}
@@ -51,11 +74,11 @@ export default function MainLayout() {
                                 <h1 className="text-xl md:text-2xl font-bold text-gray-900 group-hover:text-orange-500 transition-colors duration-300">
                                     Kitchen Buddiee
                                 </h1>
-                                <p className="hidden sm:block text-xs text-gray-500">
-                                    Cook, Share, Enjoy
-                                </p>
+                                <p className="hidden sm:block text-xs text-gray-500">Cook, Share, Enjoy</p>
                             </div>
                         </Link>
+
+                        {/* Desktop Navigation */}
                         <div className="hidden md:flex items-center gap-2 lg:gap-4">
                             {navLinks.map((link) => {
                                 const Icon = link.icon;
@@ -71,24 +94,59 @@ export default function MainLayout() {
                                     >
                                         <Icon size={20} />
                                         <span>{link.label}</span>
-                                        {active && (
-                                            <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-1 bg-orange-500 rounded-full" />
-                                        )}
                                     </Link>
                                 );
                             })}
+
                             <button className="p-2 rounded-lg text-gray-600 hover:text-orange-500 hover:bg-orange-50 transition-all duration-300">
                                 <Search size={20} />
                             </button>
-                            <Link
-                                to="/signin"
-                                className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg font-medium hover:bg-orange-600 transition-all duration-300 shadow-md hover:shadow-lg"
-                            >
-                                <User size={20} />
-                                <span>Sign In</span>
-                            </Link>
+
+                            {/* Profile or Sign In */}
+                            {username ? (
+                                <div className="relative" ref={dropdownRef}>
+                                    <button
+                                        onClick={() => setShowDropdown(!showDropdown)}
+                                        className="flex items-center justify-center w-10 h-10 rounded-full bg-orange-500 text-white font-bold hover:bg-orange-600 transition-all shadow-md"
+                                        aria-label="User menu"
+                                    >
+                                        {username.charAt(0).toUpperCase()}
+                                    </button>
+
+                                    {/* Dropdown */}
+                                    {showDropdown && (
+                                        <div className="absolute right-0 mt-3 w-44 bg-white shadow-lg rounded-xl border border-gray-100 overflow-hidden animate-fadeIn z-50">
+                                            <div className="px-4 py-3 border-b border-gray-100">
+                                                <p className="text-sm font-semibold text-gray-800">{username}</p>
+                                            </div>
+                                            <button
+                                                className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors"
+                                            >
+                                                <HelpCircle size={18} />
+                                                <span>Help</span>
+                                            </button>
+                                            <button
+                                                onClick={handleSignOut}
+                                                className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors"
+                                            >
+                                                <LogOut size={18} />
+                                                <span>Sign Out</span>
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <button
+                                    onClick={() => setShowAuth(true)}
+                                    className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg font-medium hover:bg-orange-600 transition-all duration-300 shadow-md hover:shadow-lg"
+                                >
+                                    <User size={20} />
+                                    <span>Sign In</span>
+                                </button>
+                            )}
                         </div>
 
+                        {/* Mobile Menu Toggle */}
                         <button
                             onClick={() => setIsOpen(!isOpen)}
                             className="md:hidden p-2 rounded-lg text-gray-600 hover:text-orange-500 hover:bg-orange-50 transition-all duration-300"
@@ -98,6 +156,7 @@ export default function MainLayout() {
                         </button>
                     </div>
 
+                    {/* Mobile Navigation */}
                     <div
                         className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
                             }`}
@@ -114,9 +173,7 @@ export default function MainLayout() {
                                             ? 'text-orange-500 bg-orange-50'
                                             : 'text-gray-600 hover:text-orange-500 hover:bg-orange-50'
                                             }`}
-                                        style={{
-                                            transitionDelay: `${index * 50}ms`
-                                        }}
+
                                     >
                                         <Icon size={20} />
                                         <span>{link.label}</span>
@@ -130,13 +187,28 @@ export default function MainLayout() {
                                     <span>Search</span>
                                 </button>
 
-                                <Link
-                                    to="/signin"
-                                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-orange-500 text-white rounded-lg font-medium hover:bg-orange-600 transition-all duration-300 shadow-md"
-                                >
-                                    <User size={20} />
-                                    <span>Sign In</span>
-                                </Link>
+                                {username ? (
+                                    <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-orange-50 text-orange-600 font-medium">
+                                        <span className="flex items-center justify-center w-8 h-8 bg-orange-500 text-white rounded-full font-bold">
+                                            {username.charAt(0).toUpperCase()}
+                                        </span>
+                                        <span>{username}</span>
+                                        <button
+                                            onClick={handleSignOut}
+                                            className="ml-auto text-red-500 hover:underline"
+                                        >
+                                            Sign Out
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <Link
+                                        to="/signin"
+                                        className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-orange-500 text-white rounded-lg font-medium hover:bg-orange-600 transition-all duration-300 shadow-md"
+                                    >
+                                        <User size={20} />
+                                        <span>Sign In</span>
+                                    </Link>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -153,6 +225,18 @@ export default function MainLayout() {
                     onClick={() => setIsOpen(false)}
                 />
             )}
+            <AuthDialog
+                isOpen={showAuth}
+                onClose={() => setShowAuth(false)}
+                onSuccess={(username) => {
+                    console.log('User signed in:', username);
+                    setShowAuth(false);
+                    window.location.reload();
+                }}
+                title="Sign in to continue"
+                description="Sign in to access your recipes, or create an account to get started."
+                defaultMode="signin"
+            />
         </div>
     );
 }
