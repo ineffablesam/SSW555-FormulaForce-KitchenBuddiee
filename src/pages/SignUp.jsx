@@ -40,7 +40,7 @@ export default function SignUp() {
 
         try {
             // Adjust endpoint if your backend uses a different path
-            const res = await fetch('/api/auth/signup', {
+            const res = await fetch('http://localhost:4000/api/auth/signup', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

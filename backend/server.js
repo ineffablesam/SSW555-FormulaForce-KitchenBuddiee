@@ -2,15 +2,20 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import authRouter from './routes/auth.js';
+import routes from './routes/auth.js';
+import path from 'path';
 
 import recipesRouter from './routes/recipes.js';
 import path from 'path';
+
 
 
 const app = express();
 const __dirname = path.resolve();
 
 const PORT = process.env.PORT || 4000;
+
+
 
 app.use(helmet());
 app.use(cors());

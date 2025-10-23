@@ -1,4 +1,4 @@
-<img width="120" alt="app-icon" src="./public/logo/logo-rounded.png">
+<img width="120" alt="app-icon" src="../public/logo/logo-rounded.png">
 <br>
 <br>
 

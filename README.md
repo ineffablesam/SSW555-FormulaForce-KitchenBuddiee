@@ -1,3 +1,6 @@
+## Build Status
+![CI](https://github.com/ineffablesam/SSW555-FormulaForce-KitchenBuddiee/actions/workflows/pages/pages-build-deployment/badge.svg)
+
 <img width="120" alt="app-icon" src="./public/logo/logo-rounded.png">
 
 # SSW555-FormulaForce-RecipeMate

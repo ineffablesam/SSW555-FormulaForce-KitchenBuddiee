@@ -45,6 +45,7 @@ export default function MainLayout() {
         { path: '/recipes', label: 'Recipes', icon: BookOpen },
         { path: '/favorites', label: 'Favorites', icon: Heart },
         { path: '/about', label: 'About', icon: Info },
+        { path: '/categories', label: 'Categories', icon: FolderOpen },
     ];
 
     const isActive = (path) => location.pathname === path;
