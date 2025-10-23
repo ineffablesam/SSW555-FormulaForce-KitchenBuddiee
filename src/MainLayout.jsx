@@ -3,7 +3,6 @@ import { Outlet, Link, useLocation } from 'react-router-dom';
 import { ChefHat, Home, Info, User, Menu, X, BookOpen, Heart, Search, FolderOpen, LogOut, HelpCircle } from 'lucide-react';
 import AuthDialog, { getCookie } from './components/AuthDialog';
 
-
 export default function MainLayout() {
     const [isOpen, setIsOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);

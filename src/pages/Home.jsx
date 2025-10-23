@@ -7,7 +7,6 @@ import RecipeCardShimmer from '../components/RecipeCardShimmer';
 import AuthDialog, { getCookie } from '../components/AuthDialog';
 
 
-
 export default function Home() {
     const [showAddRecipe, setShowAddRecipe] = useState(false);
     const [recipes, setRecipes] = useState([]);

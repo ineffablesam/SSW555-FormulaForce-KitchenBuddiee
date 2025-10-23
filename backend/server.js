@@ -26,7 +26,6 @@ app.get('/', (req, res) => {
 });
 
 // error handler
-// Error handler
 app.use((err, req, res, next) => {
   void next;
   console.error('Error:', err);
