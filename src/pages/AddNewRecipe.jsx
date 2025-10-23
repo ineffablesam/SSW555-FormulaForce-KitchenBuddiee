@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { ChefHat, X, AlertCircle, Check, Plus, Clock, Users, GripVertical, Trash2, ImageIcon, Save } from 'lucide-react';
-
+import AuthDialog, { getCookie } from '../components/AuthDialog';
 const AddNewRecipe = ({ onSubmit, onCancel }) => {
+    const username = getCookie('username');
     const [formData, setFormData] = useState({
         title: '',
         prepTime: '',
@@ -16,6 +17,14 @@ const AddNewRecipe = ({ onSubmit, onCancel }) => {
         imagePreview: null
     });
 
+    const handleImageToBase64 = (file) => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
+        });
+    };
     const [errors, setErrors] = useState({});
     const [showSuccess, setShowSuccess] = useState(false);
     const [draggedItem, setDraggedItem] = useState(null);
@@ -62,42 +71,78 @@ const AddNewRecipe = ({ onSubmit, onCancel }) => {
         return Object.keys(newErrors).length === 0;
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (validateForm()) {
-            const cleanedData = {
-                ...formData,
-                ingredients: formData.ingredients.filter(ing => ing.text.trim()).map(ing => ing.text),
-                steps: formData.steps.filter(step => step.text.trim()).map(step => step.text)
+        if (!validateForm()) return;
+
+        try {
+            // Filter out empty ingredients and steps
+            const validIngredients = formData.ingredients
+                .map(i => i.text.trim())
+                .filter(text => text.length > 0);
+
+            const validSteps = formData.steps
+                .map(s => s.text.trim())
+                .filter(text => text.length > 0);
+
+            // Prepare recipe data as JSON
+            const recipeData = {
+                title: formData.title.trim(),
+                prepTime: parseInt(formData.prepTime),
+                cookTime: parseInt(formData.cookTime),
+                servings: parseInt(formData.servings),
+                difficulty: formData.difficulty,
+                category: formData.category.trim(),
+                description: formData.description.trim(),
+                ingredients: validIngredients,
+                steps: validSteps,
+                image: formData.image || null,
+                username: username || 'anonymous'
             };
 
-            console.log('Recipe Data:', cleanedData);
-            setShowSuccess(true);
+            const res = await fetch('http://localhost:4000/api/recipes', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(recipeData)
+            });
 
+            if (!res.ok) {
+                const errorData = await res.json().catch(() => ({}));
+                throw new Error(errorData.message || 'Failed to save recipe');
+            }
+
+            setShowSuccess(true);
             setTimeout(() => {
-                onSubmit(cleanedData);
+                window.location.href = '/';
             }, 1500);
-        } else {
-            const firstError = document.querySelector('.border-red-300');
-            if (firstError) {
-                firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } catch (error) {
+            console.error('Error preparing recipe:', error);
+            alert(`Something went wrong: ${error.message}`);
+        }
+    };
+
+
+    // Image handling
+    const handleImageUpload = async (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            try {
+                const base64String = await handleImageToBase64(file);
+                setFormData({
+                    ...formData,
+                    image: base64String,
+                    imagePreview: base64String
+                });
+                console.log('Image converted to base64:');
+            } catch (error) {
+                console.error('Error converting image:', error);
+                alert('Failed to process image. Please try again.');
             }
         }
     };
-
-    // Image handling
-    const handleImageUpload = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            setFormData({
-                ...formData,
-                image: file,
-                imagePreview: URL.createObjectURL(file)
-            });
-        }
-    };
-
     const removeImage = () => {
         setFormData({ ...formData, image: null, imagePreview: null });
     };

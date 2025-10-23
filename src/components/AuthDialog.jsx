@@ -1,15 +1,25 @@
 import React, { useState } from 'react';
-import { ChefHat, User, Lock, Eye, EyeOff } from 'lucide-react';
+import { ChefHat, User, Lock, Eye, EyeOff, X } from 'lucide-react';
 import { toast } from 'sonner';
 
-export default function Auth({ onClose, onSuccess }) {
-    const [isSignIn, setIsSignIn] = useState(true);
+export default function AuthDialog({
+    isOpen,
+    onClose,
+    onSuccess,
+    title,
+    description,
+    defaultMode = 'signin' // 'signin' or 'signup'
+}) {
+    const [isSignIn, setIsSignIn] = useState(defaultMode === 'signin');
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+    // Don't render if not open
+    if (!isOpen) return null;
 
     // Cookie helper functions
     const setCookie = (name, value, days = 30) => {
@@ -120,21 +130,40 @@ export default function Auth({ onClose, onSuccess }) {
         setConfirmPassword('');
     };
 
+    // Get title and description
+    const getTitle = () => {
+        if (title) return title;
+        return isSignIn ? 'Welcome Back!' : 'Join Us!';
+    };
+
+    const getDescription = () => {
+        if (description) return description;
+        return isSignIn ? 'Sign in to access your recipes' : 'Create an account to get started';
+    };
+
     return (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
                 {/* Header */}
-                <div className="bg-gradient-to-r from-orange-600 to-yellow-500 p-8 text-white">
+                <div className="bg-gradient-to-r from-orange-600 to-yellow-500 p-8 text-white relative">
+                    {/* Close Button */}
+                    <button
+                        onClick={onClose}
+                        className="absolute top-4 right-4 bg-white/20 hover:bg-white/30 rounded-full p-2 transition-colors"
+                    >
+                        <X className="w-5 h-5" />
+                    </button>
+
                     <div className="flex items-center justify-center mb-4">
                         <div className="bg-white/20 rounded-full p-3 backdrop-blur-sm">
                             <ChefHat className="w-10 h-10" />
                         </div>
                     </div>
                     <h2 className="text-3xl font-bold text-center mb-2">
-                        {isSignIn ? 'Welcome Back!' : 'Join Us!'}
+                        {getTitle()}
                     </h2>
                     <p className="text-orange-100 text-center text-sm">
-                        {isSignIn ? 'Sign in to access your recipes' : 'Create an account to get started'}
+                        {getDescription()}
                     </p>
                 </div>
 
@@ -240,17 +269,21 @@ export default function Auth({ onClose, onSuccess }) {
                             )}
                         </button>
                     </div>
-
-                    {/* Close Button */}
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="w-full mt-4 text-gray-600 hover:text-gray-800 py-2 text-sm font-medium transition-colors"
-                    >
-                        Cancel
-                    </button>
                 </form>
             </div>
         </div>
     );
 }
+
+// Helper function to get cookie value
+export const getCookie = (name) => {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return null;
+};
+
+// Helper function to delete cookie
+export const deleteCookie = (name) => {
+    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+};
