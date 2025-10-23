@@ -1,11 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-<<<<<<< Updated upstream
-import { ChefHat, Home, Info, User, Menu, X, BookOpen, Heart, Search } from 'lucide-react';
-=======
 import { ChefHat, Home, Info, User, Menu, X, BookOpen, Heart, Search, FolderOpen, LogOut, HelpCircle } from 'lucide-react';
 import AuthDialog, { getCookie } from './components/AuthDialog';
->>>>>>> Stashed changes
+
 
 export default function MainLayout() {
     const [isOpen, setIsOpen] = useState(false);

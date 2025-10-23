@@ -1,10 +1,3 @@
-<<<<<<< Updated upstream
-import RecipeCard from '../components/RecipeCard'
-import { ChefHat } from 'lucide-react';
-import { recipesData } from '../mockdata/recipesData';
-
-export default function Home() {
-=======
 import { useState, useEffect } from 'react';
 import RecipeCard from '../components/RecipeCard';
 import { ChefHat, Loader2, AlertCircle } from 'lucide-react';
@@ -12,6 +5,7 @@ import AddNewRecipe from './AddNewRecipe';
 import FloatingAddRecipeButton from '../components/FloatingAddRecipeButton';
 import RecipeCardShimmer from '../components/RecipeCardShimmer';
 import AuthDialog, { getCookie } from '../components/AuthDialog';
+
 
 
 export default function Home() {
@@ -72,7 +66,6 @@ export default function Home() {
         );
     }
 
->>>>>>> Stashed changes
     return (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
             <div className="mb-8 sm:mb-10">
@@ -134,13 +127,6 @@ export default function Home() {
             )}
 
             {/* Recipe Grid */}
-<<<<<<< Updated upstream
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-                {recipesData.map((recipe) => (
-                    <RecipeCard key={recipe.id} recipe={recipe} />
-                ))}
-            </div>
-=======
             {!loading && !error && recipes.length > 0 && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
                     {recipes.map((recipe) => (
@@ -165,7 +151,6 @@ export default function Home() {
                 description="Sign in to add your delicious recipes"
                 defaultMode="signin"
             />
->>>>>>> Stashed changes
         </div>
     );
 }

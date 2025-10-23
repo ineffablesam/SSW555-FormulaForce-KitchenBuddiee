@@ -2,24 +2,16 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import authRouter from './routes/auth.js';
-<<<<<<< Updated upstream
 
-/* global process */
-
-const app = express();
-const PORT = process.env.PORT || 4000;
-
-=======
 import recipesRouter from './routes/recipes.js';
 import path from 'path';
+
 
 const app = express();
 const __dirname = path.resolve();
 
 const PORT = process.env.PORT || 4000;
 
-// Middleware - ORDER MATTERS!
->>>>>>> Stashed changes
 app.use(helmet());
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
@@ -33,14 +25,7 @@ app.get('/', (req, res) => {
   res.json({ ok: true, message: 'Kitchen Buddiee backend running' });
 });
 
-<<<<<<< Updated upstream
 // error handler
-app.use((err, req, res, next) => {
-  void next;
-  console.error(err);
-  const status = err.status || 500;
-  res.status(status).json({ message: err.message || 'Internal Server Error' });
-=======
 // Error handler
 app.use((err, req, res, next) => {
   void next;
@@ -50,7 +35,6 @@ app.use((err, req, res, next) => {
     error: err.message || 'Internal Server Error',
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
   });
->>>>>>> Stashed changes
 });
 
 app.listen(PORT, () => {
