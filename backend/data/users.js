@@ -1,4 +1,5 @@
 import { users } from '../config/mongoCollections.js';
+import { dbConnection } from '../config/mongoConnection.js';
 import bcrypt from 'bcrypt';
 const saltRounds = 16;
 
@@ -88,4 +89,32 @@ export const authenticateUser = async (username, password) => {
   }
 
   return { authenticated: true, username: user.username };
+};
+
+export const deleteUserAndData = async (username, password) => {
+  const normalizedUsername = normalizeUsername(username);
+  const normalizedPassword = normalizePassword(password);
+
+  const userCollection = await users();
+  const user = await userCollection.findOne({ username: normalizedUsername });
+  if (!user) {
+    throw createStatusError('No user found with the provided username.', 404);
+  }
+
+  const passwordMatches = await bcrypt.compare(normalizedPassword, user.password);
+  if (!passwordMatches) {
+    throw createStatusError('Incorrect password provided.', 401);
+  }
+
+  const db = await dbConnection();
+  const recipesCollection = db.collection('recipes');
+
+  await recipesCollection.deleteMany({ username: normalizedUsername });
+
+  const { deletedCount } = await userCollection.deleteOne({ username: normalizedUsername });
+  if (!deletedCount) {
+    throw createStatusError('Failed to delete user account.', 500);
+  }
+
+  return { deleted: true };
 };
