@@ -11,6 +11,7 @@ import SignUp from './pages/SignUp';
 import SignIn from './pages/SignIn';
 import Categories from './pages/Categories'; 
 import CategoryView from './pages/CategoryView';
+import ViewCart from './pages/ViewCart';
 
 
 
@@ -29,6 +30,7 @@ export default function App() {
           <Route path="*" element={<NotFound />} />
           <Route path="/signup" element={<SignUp />} />
           <Route path="/signin" element={<SignIn />} />
+          <Route path="/cart" element={<ViewCart />} />
         </Route>
 
         {/* Routes without the header */}
