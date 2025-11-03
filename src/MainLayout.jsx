@@ -1,13 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { ChefHat, Home, Info, User, Menu, X, BookOpen, Heart, Search, FolderOpen, LogOut, HelpCircle } from 'lucide-react';
-import AuthDialog, { getCookie } from './components/AuthDialog';
+import { ChefHat, Home, Info, User, Menu, X, BookOpen, Heart, Search, FolderOpen, LogOut, HelpCircle, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
+import AuthDialog, { getCookie, deleteCookie } from './components/AuthDialog';
+import DeleteAccountDialog from './components/DeleteAccountDialog';
 
 export default function MainLayout() {
     const [isOpen, setIsOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
     const [showAuth, setShowAuth] = useState(false);
     const [showDropdown, setShowDropdown] = useState(false);
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
     const dropdownRef = useRef(null);
 
     const username = getCookie('username');
@@ -36,8 +39,24 @@ export default function MainLayout() {
     }, []);
 
     const handleSignOut = () => {
-        document.cookie = 'username=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+        deleteCookie('username');
         window.location.reload();
+    };
+
+    const openDeleteAccountDialog = () => {
+        if (!username) return;
+        setShowDropdown(false);
+        setIsOpen(false);
+        setShowDeleteDialog(true);
+    };
+
+    const handleAccountDeleted = () => {
+        setShowDeleteDialog(false);
+        deleteCookie('username');
+        toast.success('Your account has been deleted.');
+        setTimeout(() => {
+            window.location.href = '/';
+        }, 600);
     };
 
     const navLinks = [
@@ -123,6 +142,13 @@ export default function MainLayout() {
                                                 <span>Help</span>
                                             </button>
                                             <button
+                                                onClick={openDeleteAccountDialog}
+                                                className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 transition-colors"
+                                            >
+                                                <Trash2 size={18} />
+                                                <span>Delete Account</span>
+                                            </button>
+                                            <button
                                                 onClick={handleSignOut}
                                                 className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors"
                                             >
@@ -185,18 +211,30 @@ export default function MainLayout() {
                                 </button>
 
                                 {username ? (
-                                    <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-orange-50 text-orange-600 font-medium">
-                                        <span className="flex items-center justify-center w-8 h-8 bg-orange-500 text-white rounded-full font-bold">
-                                            {username.charAt(0).toUpperCase()}
-                                        </span>
-                                        <span>{username}</span>
-                                        <button
-                                            onClick={handleSignOut}
-                                            className="ml-auto text-red-500 hover:underline"
+                                    <>
+                                        <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-orange-50 text-orange-600 font-medium">
+                                            <span className="flex items-center justify-center w-8 h-8 bg-orange-500 text-white rounded-full font-bold">
+                                                {username.charAt(0).toUpperCase()}
+                                            </span>
+                                            <span>{username}</span>
+                                            <button
+                                                onClick={() => {
+                                                    setIsOpen(false);
+                                                    handleSignOut();
+                                                }}
+                                                className="ml-auto text-red-500 hover:underline"
+                                            >
+                                                Sign Out
+                                            </button>
+                                       </div>
+                                       <button
+                                            onClick={openDeleteAccountDialog}
+                                            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-red-50 text-red-600 font-medium hover:bg-red-100 transition-all duration-300"
                                         >
-                                            Sign Out
+                                            <Trash2 size={18} />
+                                            <span>Delete Account</span>
                                         </button>
-                                    </div>
+                                    </>
                                 ) : (
                                     <Link
                                         to="/signin"
@@ -233,6 +271,12 @@ export default function MainLayout() {
                 title="Sign in to continue"
                 description="Sign in to access your recipes, or create an account to get started."
                 defaultMode="signin"
+            />
+            <DeleteAccountDialog
+                isOpen={showDeleteDialog}
+                onClose={() => setShowDeleteDialog(false)}
+                username={username}
+                onDeleted={handleAccountDeleted}
             />
         </div>
     );
