@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { ChefHat, Home, Info, User, Menu, X, BookOpen, Heart, Search, FolderOpen, LogOut, HelpCircle, Trash2 } from 'lucide-react';
+import { ChefHat, Home, Info, User, Menu, X, BookOpen, Heart, Search, FolderOpen, ShoppingCart, LogOut, HelpCircle, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import AuthDialog, { getCookie, deleteCookie } from './components/AuthDialog';
 import DeleteAccountDialog from './components/DeleteAccountDialog';
@@ -63,6 +63,7 @@ export default function MainLayout() {
         { path: '/', label: 'Home', icon: Home },
         { path: '/recipes', label: 'Recipes', icon: BookOpen },
         { path: '/favorites', label: 'Favorites', icon: Heart },
+        { path: '/cart', label: 'Cart', icon: ShoppingCart },
         { path: '/about', label: 'About', icon: Info },
         { path: '/categories', label: 'Categories', icon: FolderOpen },
     ];
