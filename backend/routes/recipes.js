@@ -26,7 +26,7 @@ router.post('/', async (req, res, next) => {
         console.log('Body keys:', Object.keys(req.body));
         console.log('Title:', req.body.title);
 
-        const { title, prepTime, cookTime, servings, difficulty, category, description, ingredients, steps, image, username } = req.body;
+        const { title, prepTime, cookTime, servings, difficulty, category, description, externalLink, ingredients, steps, image, username } = req.body;
 
         // Validation
         if (!title || !prepTime || !cookTime || !servings || !category) {
@@ -53,6 +53,24 @@ router.post('/', async (req, res, next) => {
             });
         }
 
+        // Validate optional external link if provided
+        if (externalLink && typeof externalLink === 'string') {
+            try {
+                const u = new URL(externalLink);
+                if (!(u.protocol === 'http:' || u.protocol === 'https:')) {
+                    return res.status(400).json({
+                        error: 'Invalid external link',
+                        message: 'External link must start with http or https'
+                    });
+                }
+            } catch {
+                return res.status(400).json({
+                    error: 'Invalid external link',
+                    message: 'External link must be a valid URL'
+                });
+            }
+        }
+
         // Prepare recipe data
         const recipeData = {
             title: title.trim(),
@@ -62,6 +80,7 @@ router.post('/', async (req, res, next) => {
             difficulty: difficulty || 'medium',
             category: category.trim(),
             description: description?.trim() || '',
+            externalLink: externalLink?.trim() || '',
             ingredients: ingredients.filter(i => i && i.trim()),
             steps: steps.filter(s => s && s.trim()),
             image: image || null,
