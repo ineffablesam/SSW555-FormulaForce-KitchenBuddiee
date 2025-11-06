@@ -1,6 +1,12 @@
 import express from 'express';
 import createHttpError from 'http-errors';
-import { createUser, authenticateUser, deleteUserAndData } from '../data/users.js';
+import {
+  createUser,
+  authenticateUser,
+  deleteUserAndData,
+  getUserProfile,
+  updateUserProfile
+} from '../data/users.js';
 
 const router = express.Router();
 
@@ -53,6 +59,42 @@ router.post('/delete-account', async (req, res, next) => {
 
     await deleteUserAndData(username, password);
     return res.status(200).json({ message: 'Account deleted' });
+  } catch (err) {
+    if (err && err.status) {
+      return res.status(err.status).json({ message: err.message });
+    }
+    return next(err);
+  }
+});
+
+// GET /api/auth/profile/:username
+router.get('/profile/:username', async (req, res, next) => {
+  try {
+    const { username } = req.params;
+    if (!username) {
+      throw createHttpError(400, 'username is required');
+    }
+
+    const profile = await getUserProfile(username);
+    return res.status(200).json({ profile });
+  } catch (err) {
+    if (err && err.status) {
+      return res.status(err.status).json({ message: err.message });
+    }
+    return next(err);
+  }
+});
+
+// PUT /api/auth/update-profile
+router.put('/update-profile', async (req, res, next) => {
+  try {
+    const { username, bio, profilePicture } = req.body || {};
+    if (!username) {
+      throw createHttpError(400, 'username is required');
+    }
+
+    const profile = await updateUserProfile(username, bio, profilePicture);
+    return res.status(200).json({ message: 'Profile updated', profile });
   } catch (err) {
     if (err && err.status) {
       return res.status(err.status).json({ message: err.message });
