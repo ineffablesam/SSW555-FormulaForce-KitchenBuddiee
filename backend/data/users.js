@@ -60,6 +60,9 @@ export const createUser = async (username, password) => {
   const newUser = {
     username: normalizedUsername,
     password: hashPassword,
+    bio: '',
+    profilePicture: '',
+    createdAt: new Date()
   };
   const userCollection = await users();
   const user = await userCollection.findOne({ username: normalizedUsername });
@@ -117,4 +120,67 @@ export const deleteUserAndData = async (username, password) => {
   }
 
   return { deleted: true };
+};
+
+export const getUserProfile = async (username) => {
+  const normalizedUsername = normalizeUsername(username);
+
+  const userCollection = await users();
+  const user = await userCollection.findOne({ username: normalizedUsername });
+
+  if (!user) {
+    throw createStatusError('No user found with the provided username.', 404);
+  }
+
+  return {
+    username: user.username,
+    bio: user.bio || '',
+    profilePicture: user.profilePicture || '',
+    createdAt: user.createdAt
+  };
+};
+
+export const updateUserProfile = async (username, bio, profilePicture) => {
+  const normalizedUsername = normalizeUsername(username);
+
+  // Validate bio if provided
+  if (bio && typeof bio !== 'string') {
+    throw createStatusError('Bio must be a string.', 400);
+  }
+  if (bio && bio.length > 200) {
+    throw createStatusError('Bio must be 200 characters or less.', 400);
+  }
+
+  // Validate profilePicture if provided
+  if (profilePicture && typeof profilePicture !== 'string') {
+    throw createStatusError('Profile picture must be a string.', 400);
+  }
+
+  const userCollection = await users();
+  const user = await userCollection.findOne({ username: normalizedUsername });
+
+  if (!user) {
+    throw createStatusError('No user found with the provided username.', 404);
+  }
+
+  const updateData = {
+    bio: bio || '',
+    profilePicture: profilePicture || '',
+    updatedAt: new Date()
+  };
+
+  const updateResult = await userCollection.updateOne(
+    { username: normalizedUsername },
+    { $set: updateData }
+  );
+
+  if (!updateResult.acknowledged) {
+    throw createStatusError('Failed to update profile.', 500);
+  }
+
+  return {
+    username: user.username,
+    bio: updateData.bio,
+    profilePicture: updateData.profilePicture
+  };
 };

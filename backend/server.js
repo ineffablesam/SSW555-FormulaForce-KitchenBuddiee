@@ -1,7 +1,6 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import bodyParser from 'body-parser';
 import authRouter from './routes/auth.js';
 import path from 'path';
 
@@ -14,17 +13,13 @@ import favoritesRouter from './routes/favorites.js';
 const app = express();
 const __dirname = path.resolve();
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-//const app = express();
 const PORT = process.env.PORT || 4000;
 
-
-
+// Middleware - ORDER MATTERS!
 app.use(helmet());
 app.use(cors());
-app.use(bodyParser.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // CORS configuration
 app.use(cors({
