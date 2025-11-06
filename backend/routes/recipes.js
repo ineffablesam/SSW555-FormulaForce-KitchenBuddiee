@@ -117,9 +117,12 @@ router.post('/', async (req, res, next) => {
 router.get('/user/:username', async (req, res, next) => {
     try {
         const { username } = req.params;
+        console.log(`👤 Fetching recipes for user: ${username}`);
         const recipes = await getRecipesByUser(username);
+        console.log(`✅ Found ${recipes.length} recipes for ${username}`);
         res.json({ success: true, recipes });
     } catch (error) {
+        console.error('❌ Error fetching user recipes:', error);
         next(error);
     }
 });
@@ -127,15 +130,19 @@ router.get('/user/:username', async (req, res, next) => {
 // GET /api/recipes/:id (get single recipe)
 router.get('/:id', async (req, res, next) => {
     try {
+        console.log(`🔍 Fetching recipe: ${req.params.id}`);
         const recipe = await getRecipeById(req.params.id);
         if (!recipe) {
+            console.log('❌ Recipe not found');
             return res.status(404).json({
                 error: 'Not found',
                 message: 'Recipe not found'
             });
         }
+        console.log('✅ Recipe found:', recipe.title);
         res.json({ success: true, recipe });
     } catch (error) {
+        console.error('❌ Error fetching recipe:', error);
         next(error);
     }
 });
@@ -145,23 +152,37 @@ router.put('/:id', async (req, res, next) => {
     try {
         const { id } = req.params;
         const updates = req.body;
-        const username = req.user?.username;
+
+        // Get username from cookie
+        const username = req.cookies?.username || req.body.username;
+
+        console.log(`✏️ Updating recipe ${id} for user: ${username}`);
+
+        if (!username) {
+            return res.status(401).json({
+                error: 'Unauthorized',
+                message: 'You must be logged in to update recipes'
+            });
+        }
 
         const updatedRecipe = await updateRecipe(id, updates, username);
 
         if (!updatedRecipe) {
+            console.log('❌ Recipe not found or unauthorized');
             return res.status(404).json({
                 error: 'Not found',
-                message: 'Recipe not found or unauthorized'
+                message: 'Recipe not found or you do not have permission to update it'
             });
         }
 
+        console.log('✅ Recipe updated successfully');
         res.json({
             success: true,
             message: 'Recipe updated successfully',
             recipe: updatedRecipe
         });
     } catch (error) {
+        console.error('❌ Error updating recipe:', error);
         next(error);
     }
 });
@@ -170,22 +191,37 @@ router.put('/:id', async (req, res, next) => {
 router.delete('/:id', async (req, res, next) => {
     try {
         const { id } = req.params;
-        const username = req.user?.username;
+
+        // Get username from cookie
+        const username = req.cookies?.username;
+
+        console.log(`🗑️ Delete request for recipe ${id} from user: ${username}`);
+
+        if (!username) {
+            console.log('❌ No username found in cookies');
+            return res.status(401).json({
+                error: 'Unauthorized',
+                message: 'You must be logged in to delete recipes'
+            });
+        }
 
         const deleted = await deleteRecipe(id, username);
 
         if (!deleted) {
+            console.log('❌ Recipe not found or unauthorized');
             return res.status(404).json({
                 error: 'Not found',
-                message: 'Recipe not found or unauthorized'
+                message: 'Recipe not found or you do not have permission to delete it'
             });
         }
 
+        console.log('✅ Recipe deleted successfully');
         res.json({
             success: true,
             message: 'Recipe deleted successfully'
         });
     } catch (error) {
+        console.error('❌ Error deleting recipe:', error);
         next(error);
     }
 });
