@@ -169,9 +169,6 @@ export default function MainLayout() {
                   </Link>
                 );
               })}
-              <button className="p-2 rounded-lg text-gray-600 hover:text-orange-500 hover:bg-orange-50 transition-all duration-300">
-                <Search size={20} />
-              </button>
               {username ? (
                 <div className="relative" ref={dropdownRef}>
                   <button
@@ -258,10 +255,7 @@ export default function MainLayout() {
                 );
               })}
               <div className="pt-2 border-t border-gray-100 space-y-2">
-                <button className="w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium text-gray-600 hover:text-orange-500 hover:bg-orange-50 transition-all duration-300">
-                  <Search size={20} />
-                  <span>Search</span>
-                </button>
+
                 {username ? (
                   <>
                     <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-orange-50 text-orange-600 font-medium">
