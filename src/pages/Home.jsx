@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import RecipeCard from '../components/RecipeCard';
 import { ChefHat, Loader2, AlertCircle } from 'lucide-react';
 import AddNewRecipe from './AddNewRecipe';
@@ -14,6 +15,7 @@ export default function Home() {
     const [error, setError] = useState(null);
     const [showAuth, setShowAuth] = useState(false);
     const username = getCookie('username');
+    const navigate = useNavigate(); 
 
     // Fetch all recipes on component mount
     useEffect(() => {
@@ -56,6 +58,15 @@ export default function Home() {
         setShowAddRecipe(true);
         await fetchRecipes();
     };
+
+    const goToCategories = () => {
+        if (username) {
+            navigate(`/categories/${username}`);
+        } else {
+            setShowAuth(true); 
+        }
+    };
+
     if (showAddRecipe) {
         return (
             <AddNewRecipe

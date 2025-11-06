@@ -24,8 +24,8 @@ export default function App() {
         <Route element={<MainLayout />}>
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<About />} />
-          <Route path="/categories" element={<Categories />} />
-          <Route path="/categories/:categoryName" element={<CategoryView />} />
+          <Route path="/categories/:username" element={<Categories />} />
+          <Route path="/categories/:username/:categoryName" element={<CategoryView />} />
           <Route path="/recipe/:id" element={<RecipeView />} />
           <Route path="*" element={<NotFound />} />
           <Route path="/signup" element={<SignUp />} />

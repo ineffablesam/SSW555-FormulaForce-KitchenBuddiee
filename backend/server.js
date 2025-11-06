@@ -8,6 +8,7 @@ import path from 'path';
 
 import recipesRouter from './routes/recipes.js';
 import cartRouter from './routes/cart.js';
+import categoriesRouter from './routes/categories.js';
 
 
 
@@ -23,13 +24,18 @@ const PORT = process.env.PORT || 4000;
 
 
 app.use(helmet());
-app.use(cors());
+//app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:5173', // replace with your frontend URL
+  credentials: true,
+}));
 app.use(bodyParser.json());
 
 // Routes
 app.use('/api/auth', authRouter);
 app.use('/api/recipes', recipesRouter);
 app.use('/api/cart', cartRouter);
+app.use('/api/categories', categoriesRouter);
 
 app.get('/', (req, res) => {
   res.json({ ok: true, message: 'Kitchen Buddiee backend running' });
