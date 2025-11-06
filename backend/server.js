@@ -7,7 +7,7 @@ import path from 'path';
 
 import recipesRouter from './routes/recipes.js';
 import cartRouter from './routes/cart.js';
-import favoritesRouter from './routes/favorites.js';
+import categoriesRouter from './routes/categories.js';
 
 const app = express();
 const __dirname = path.resolve();
@@ -39,7 +39,7 @@ app.use((req, res, next) => {
 app.use('/api/auth', authRouter);
 app.use('/api/recipes', recipesRouter);
 app.use('/api/cart', cartRouter);
-app.use('/api/favorites', favoritesRouter);
+app.use('/api/categories', categoriesRouter);
 
 app.get('/', (req, res) => {
   res.json({ ok: true, message: 'Kitchen Buddiee backend running' });

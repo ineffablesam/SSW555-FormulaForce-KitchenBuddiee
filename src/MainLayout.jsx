@@ -111,7 +111,7 @@ export default function MainLayout() {
     { path: '/favorites', label: 'Favorites', icon: Heart },
     { path: '/cart', label: 'Cart', icon: ShoppingCart },
     { path: '/about', label: 'About', icon: Info },
-    { path: '/categories', label: 'Categories', icon: FolderOpen }
+    { path: `/categories/${username || ''}`, label: 'Categories', icon: FolderOpen }
   ];
 
   const isActive = (path) => location.pathname === path;

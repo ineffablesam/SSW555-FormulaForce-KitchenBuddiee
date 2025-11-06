@@ -6,8 +6,12 @@ const router = express.Router();
 // GET /api/recipes (get ALL recipes)
 router.get('/', async (req, res, next) => {
     try {
+        const { username, category } = req.query;
+        let filter = {};
+        if (username) filter.username = username;
+        if (category) filter.category = category;
         console.log('📚 Fetching all recipes');
-        const recipes = await getAllRecipes();
+        const recipes = await getAllRecipes(filter );
         console.log(`✅ Found ${recipes.length} recipes`);
         res.json({
             success: true,
