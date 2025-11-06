@@ -3,11 +3,11 @@ import cors from 'cors';
 import helmet from 'helmet';
 import bodyParser from 'body-parser';
 import authRouter from './routes/auth.js';
-import routes from './routes/auth.js';
 import path from 'path';
 
 import recipesRouter from './routes/recipes.js';
 import cartRouter from './routes/cart.js';
+import favoritesRouter from './routes/favorites.js';
 
 
 
@@ -26,24 +26,38 @@ app.use(helmet());
 app.use(cors());
 app.use(bodyParser.json());
 
+// CORS configuration
+app.use(cors({
+  origin: 'http://localhost:5173', // Vite's default port
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type']
+}));
+
+// Set default headers for JSON responses
+app.use((req, res, next) => {
+  res.setHeader('Content-Type', 'application/json');
+  next();
+});
+
 // Routes
 app.use('/api/auth', authRouter);
 app.use('/api/recipes', recipesRouter);
 app.use('/api/cart', cartRouter);
+app.use('/api/favorites', favoritesRouter);
 
 app.get('/', (req, res) => {
   res.json({ ok: true, message: 'Kitchen Buddiee backend running' });
 });
 
-// error handler
-// app.use((err, req, res, next) => {
-//   void next;
-//   console.error(err);
-//   const status = err.status || 500;
-//   res.status(status).json({ message: err.message || 'Internal Server Error' });
-// });
-
-app.use('/', routes);
+// Error handler
+app.use((err, req, res, next) => {
+  console.error(err);
+  const status = err.status || 500;
+  res.status(status).json({
+    error: true,
+    message: err.message || 'Internal Server Error'
+  });
+});
 
 app.listen(PORT, () => {
   console.log(`🚀 Backend server listening on port ${PORT}`);

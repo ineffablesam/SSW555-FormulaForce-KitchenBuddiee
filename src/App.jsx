@@ -12,6 +12,7 @@ import SignIn from './pages/SignIn';
 import Categories from './pages/Categories'; 
 import CategoryView from './pages/CategoryView';
 import ViewCart from './pages/ViewCart';
+import Favorites from './pages/Favorites';
 
 
 
@@ -31,6 +32,7 @@ export default function App() {
           <Route path="/signup" element={<SignUp />} />
           <Route path="/signin" element={<SignIn />} />
           <Route path="/cart" element={<ViewCart />} />
+          <Route path="/favorites" element={<Favorites />} />
         </Route>
 
         {/* Routes without the header */}
