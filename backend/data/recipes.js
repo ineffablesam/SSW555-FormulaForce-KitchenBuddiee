@@ -29,10 +29,13 @@ export async function createRecipe(recipeData) {
 }
 
 // NEW: Get all recipes
-export async function getAllRecipes() {
+export async function getAllRecipes(filter = {}) {
     const db = await dbConnection();
     const collection = db.collection(RECIPES_COLLECTION);
-    return await collection.find({}).sort({ createdAt: -1 }).toArray();
+    const query = {};
+    if (filter.username) query.username = filter.username;
+    if (filter.category) query.category = filter.category;
+    return await collection.find(query).sort({ createdAt: -1 }).toArray();
 }
 
 export async function getRecipesByUser(username) {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChefHat, X, AlertCircle, Check, Plus, Clock, Users, GripVertical, Trash2, ImageIcon, Save } from 'lucide-react';
+import { ChefHat, X, AlertCircle, Check, Plus, Clock, Users, GripVertical, Trash2, ImageIcon, Save, Link2 } from 'lucide-react';
 import AuthDialog, { getCookie } from '../components/AuthDialog';
 const AddNewRecipe = ({ onSubmit, onCancel }) => {
     const username = getCookie('username');
@@ -11,6 +11,7 @@ const AddNewRecipe = ({ onSubmit, onCancel }) => {
         difficulty: 'medium',
         category: '',
         description: '',
+        externalLink: '',
         ingredients: [{ id: Date.now(), text: '' }],
         steps: [{ id: Date.now() + 1, text: '' }],
         image: null,
@@ -33,6 +34,15 @@ const AddNewRecipe = ({ onSubmit, onCancel }) => {
     useEffect(() => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }, []);
+
+    const isValidUrl = (value) => {
+        try {
+            const u = new URL(value);
+            return u.protocol === 'http:' || u.protocol === 'https:';
+        } catch {
+            return false;
+        }
+    };
 
     const validateForm = () => {
         const newErrors = {};
@@ -67,6 +77,10 @@ const AddNewRecipe = ({ onSubmit, onCancel }) => {
             newErrors.category = 'Category is required';
         }
 
+        if (formData.externalLink && !isValidUrl(formData.externalLink.trim())) {
+            newErrors.externalLink = 'Enter a valid URL starting with http or https';
+        }
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -95,6 +109,7 @@ const AddNewRecipe = ({ onSubmit, onCancel }) => {
                 difficulty: formData.difficulty,
                 category: formData.category.trim(),
                 description: formData.description.trim(),
+                externalLink: formData.externalLink?.trim() || '',
                 ingredients: validIngredients,
                 steps: validSteps,
                 image: formData.image || null,
@@ -353,6 +368,29 @@ const AddNewRecipe = ({ onSubmit, onCancel }) => {
                                             placeholder="Brief description of your recipe..."
                                             rows="4"
                                         />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                            <Link2 className="w-4 h-4 inline mr-1" />
+                                            External Link <span className="text-gray-400 text-xs">(Optional)</span>
+                                        </label>
+                                        <input
+                                            type="url"
+                                            value={formData.externalLink}
+                                            onChange={(e) => {
+                                                setFormData({ ...formData, externalLink: e.target.value });
+                                                if (errors.externalLink) setErrors({ ...errors, externalLink: null });
+                                            }}
+                                            className={`w-full px-4 py-3 border-2 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all ${errors.externalLink ? 'border-red-300 bg-red-50' : 'border-gray-300 hover:border-orange-300'}`}
+                                            placeholder="https://example.com/original-recipe"
+                                        />
+                                        {errors.externalLink && (
+                                            <div className="flex items-center gap-1 mt-2 text-red-600 text-sm">
+                                                <AlertCircle className="w-4 h-4" />
+                                                <span>{errors.externalLink}</span>
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

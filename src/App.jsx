@@ -9,7 +9,8 @@ import RecipeView from './pages/RecipeView';
 import NotFound from './pages/NotFound';
 import SignUp from './pages/SignUp';
 import SignIn from './pages/SignIn';
-import Categories from './pages/Categories'; 
+import Categories from './pages/Categories';
+import MyRecipes from './pages/MyRecipes';
 import CategoryView from './pages/CategoryView';
 import ViewCart from './pages/ViewCart';
 import Favorites from './pages/Favorites';
@@ -25,9 +26,11 @@ export default function App() {
         <Route element={<MainLayout />}>
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<About />} />
-          <Route path="/categories" element={<Categories />} />
-          <Route path="/categories/:categoryName" element={<CategoryView />} />
+          <Route path="/categories/:username" element={<Categories />} />
+          <Route path="/categories/:username/:categoryName" element={<CategoryView />} />
           <Route path="/recipe/:id" element={<RecipeView />} />
+          <Route path="/recipes" element={<MyRecipes />} />
+
           <Route path="*" element={<NotFound />} />
           <Route path="/signup" element={<SignUp />} />
           <Route path="/signin" element={<SignIn />} />
