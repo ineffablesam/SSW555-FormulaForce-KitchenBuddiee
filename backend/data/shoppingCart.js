@@ -55,9 +55,66 @@ export const deleteCart = async (username) => {
   return { deleted: true };
 };
 
+export const addRecipeToCart = async (username, recipe) => {
+  const u = ensureString(username, 'username');
+  
+  if (!recipe || typeof recipe !== 'object') {
+    throw createStatusError('recipe must be an object', 400);
+  }
+  
+  if (!Array.isArray(recipe.ingredients)) {
+    throw createStatusError('recipe.ingredients must be an array', 400);
+  }
+
+  // Get the current cart
+  const currentCart = await getCartByUsername(u);
+  const existingItems = currentCart.items || [];
+
+  // Create a map of existing items for easy lookup
+  const itemMap = new Map();
+  existingItems.forEach((item) => {
+    itemMap.set(item.text, item);
+  });
+
+  // Add or update items from the recipe
+  recipe.ingredients.forEach((ingredient) => {
+    const ingredientText = typeof ingredient === 'string' ? ingredient.trim() : ingredient;
+    
+    if (typeof ingredientText !== 'string') {
+      return; // Skip invalid ingredients
+    }
+
+    if (itemMap.has(ingredientText)) {
+      // Increment quantity if item already exists
+      const existing = itemMap.get(ingredientText);
+      existing.qty = (existing.qty || 1) + 1;
+    } else {
+      // Add new item
+      itemMap.set(ingredientText, {
+        text: ingredientText,
+        qty: 1,
+        checked: false
+      });
+    }
+  });
+
+  // Convert map back to array
+  const updatedItems = Array.from(itemMap.values());
+
+  // Save the updated cart
+  await upsertCart(u, updatedItems);
+
+  return {
+    success: true,
+    addedCount: recipe.ingredients.length,
+    totalItems: updatedItems.length
+  };
+};
+
 export default {
   getCartByUsername,
   upsertCart,
   deleteCart,
+  addRecipeToCart,
 };
 

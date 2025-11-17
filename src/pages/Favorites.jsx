@@ -17,22 +17,26 @@ export default function Favorites() {
       }
 
       try {
-        const res = await fetch(`http://localhost:4000/api/favorites/${encodeURIComponent(username)}`);
+        const res = await fetch(`/api/favorites/${encodeURIComponent(username)}`);
+        
         if (!res.ok) {
+          // Handle specific HTTP errors
+          if (res.status === 404) {
+            // No favorites found - this is normal for new users
+            setFavorites([]);
+            setLoading(false);
+            return;
+          }
           throw new Error(`HTTP error! status: ${res.status}`);
         }
         
-        const contentType = res.headers.get("content-type");
-        if (!contentType || !contentType.includes("application/json")) {
-          throw new TypeError("Expected JSON response from server");
-        }
-
         const data = await res.json();
         setFavorites(data.favorites || []);
         setLoading(false);
       } catch (err) {
         console.error('Error loading favorites:', err);
-        setError('Failed to load favorites. Please try again later.');
+        // If fetch fails completely, just show empty favorites instead of error
+        setFavorites([]);
         setLoading(false);
       }
     };
@@ -49,8 +53,26 @@ export default function Favorites() {
         <div>Loading...</div>
       ) : error ? (
         <div className="text-red-500">{error}</div>
+      ) : favorites.length === 0 ? (
+        <div className="text-center py-12">
+          <div className="text-gray-400 text-5xl mb-4">⭐</div>
+          <div className="text-gray-600 text-lg font-medium mb-2">
+            You don't have any favorite recipes yet
+          </div>
+          <div className="text-gray-500 text-sm">
+            Start adding recipes to your favorites to see them here!
+          </div>
+        </div>
       ) : favoriteRecipes.length === 0 ? (
-        <div className="text-gray-500">No favorite recipes yet.</div>
+        <div className="text-center py-12">
+          <div className="text-gray-400 text-5xl mb-4">⚠️</div>
+          <div className="text-gray-600 text-lg font-medium mb-2">
+            No matching recipes found
+          </div>
+          <div className="text-gray-500 text-sm">
+            Your favorites list contains recipe IDs that couldn't be found in our database.
+          </div>
+        </div>
       ) : (
         <ul className="space-y-4">
           {favoriteRecipes.map((r) => (
