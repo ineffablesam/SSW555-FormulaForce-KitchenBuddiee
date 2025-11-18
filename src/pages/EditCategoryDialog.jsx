@@ -5,7 +5,7 @@ import { useParams } from 'react-router-dom';
 
 export default function EditCategoryDialog({ category, onClose, onSuccess }) {
     const [name, setName] = useState(category.name);
-    const [color, setColor] = useState(category.color || '#FFA500');
+    const [color, setColor] = useState(category.color || '#FFFFFF');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const { username } = useParams(); 

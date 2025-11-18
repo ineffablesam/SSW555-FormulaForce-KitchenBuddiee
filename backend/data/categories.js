@@ -5,7 +5,7 @@ import { dbConnection } from '../config/mongoConnection.js';
 const CATEGORIES_COLLECTION = 'categories';
 
 export async function createCategory(categoryData) {
-    const { name, description, username } = categoryData;
+    const { name, description, username, color } = categoryData;
     if (!name || typeof name !== 'string') {
         throw createHttpError(400, 'Category name is required.');
     }
@@ -27,6 +27,7 @@ export async function createCategory(categoryData) {
     
     const result = await collection.insertOne({
         ...categoryData,
+        recipes: [],
         createdAt: new Date(),
         updatedAt: new Date(),
     });
@@ -100,7 +101,6 @@ export async function updateCategory(id, updates, username) {
     { returnDocument: 'after' }
   );
 
-  console.log('Update result:', result);
 
   if (!result) {
     throw createHttpError(400, 'Failed to update category — maybe wrong ID or duplicate name');

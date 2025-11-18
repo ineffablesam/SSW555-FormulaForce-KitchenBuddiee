@@ -6,6 +6,8 @@ export default function AddNewCategory({ onCancel, onSuccess }) {
     const { username } = useParams(); // get username from URL
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
+    const [color, setColor] = useState('#FFFFFF'); 
+
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -19,7 +21,8 @@ export default function AddNewCategory({ onCancel, onSuccess }) {
             console.log('Creating category with:', {
                 name,
                 description,
-                username
+                username,
+                color,
             });
 
             const res = await fetch('http://localhost:4000/api/categories', {
@@ -28,12 +31,14 @@ export default function AddNewCategory({ onCancel, onSuccess }) {
                 body: JSON.stringify({
                     name: name.trim(),
                     description: description.trim(),
-                    username, // username from URL
+                    username, 
+                    color: color || '#FFFFFF', 
                 }),
             });
 
             const data = await res.json();
 
+            console.log(data);
             if (!res.ok) throw new Error(data.error || 'Failed to create category');
 
             if (onSuccess) onSuccess();
@@ -66,6 +71,17 @@ export default function AddNewCategory({ onCancel, onSuccess }) {
                         className="w-full border rounded-lg px-3 py-2"
                     />
                 </div>
+
+                <div>
+                <label className="block text-gray-700 mb-1">Color</label>
+                <input
+                    type="color"
+                    value={color}
+                    onChange={(e) => setColor(e.target.value)}
+                    className="w-16 h-10 p-0 border rounded"
+                />
+                </div>
+
                 <div className="flex justify-end gap-2">
                     <button
                         type="button"

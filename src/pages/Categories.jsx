@@ -154,7 +154,7 @@ export default function Categories() {
                       <div
                         key={category._id || category.name}
                         className="relative bg-white border-2 border-orange-100 p-6 rounded-lg shadow hover:shadow-md transition group"
-                        style={{ backgroundColor: category.color || '#FFFFFF', borderColor: category.color || '#FFA500' }}
+                        style={{ backgroundColor: category.color || '#FFFFFF', borderColor: '#FFA500' }}
                     >
                         {/* Pencil icon (edit) */}
                         <button
