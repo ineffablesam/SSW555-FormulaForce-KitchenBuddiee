@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { recipesData } from '../mockdata/recipesData';
 import { ShoppingCart, Trash2, Clipboard } from 'lucide-react';
 import { getCookie } from '../components/AuthDialog';
 
@@ -17,16 +16,47 @@ function aggregateIngredients(selectedRecipes) {
 }
 
 export default function ViewCart() {
-  const [selectedIds, setSelectedIds] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem('cartRecipeIds') || '[]');
-    } catch {
-      return [];
-    }
-  });
-
+  const [selectedIds, setSelectedIds] = useState([]);
   const [items, setItems] = useState([]);
+  const [userRecipes, setUserRecipes] = useState([]);
+  const [loadingRecipes, setLoadingRecipes] = useState(true);
+  const [recipesError, setRecipesError] = useState(null);
 
+  // Fetch user's recipes from database
+  useEffect(() => {
+    const fetchUserRecipes = async () => {
+      const username = getCookie('username');
+      if (!username) {
+        setRecipesError('You must be logged in to view your recipes.');
+        setLoadingRecipes(false);
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/recipes/user/${encodeURIComponent(username)}`);
+        if (!res.ok) {
+          if (res.status === 404) {
+            setUserRecipes([]);
+            setLoadingRecipes(false);
+            return;
+          }
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+
+        const data = await res.json();
+        setUserRecipes(data.recipes || []);
+        setLoadingRecipes(false);
+      } catch (err) {
+        console.error('Error loading user recipes:', err);
+        setUserRecipes([]);
+        setLoadingRecipes(false);
+      }
+    };
+
+    fetchUserRecipes();
+  }, []);
+
+  // Load cart items from backend
   useEffect(() => {
     const load = async () => {
       const username = getCookie('username');
@@ -37,36 +67,32 @@ export default function ViewCart() {
           if (res.ok) {
             const body = await res.json();
             setItems((body.items || []).map((it) => ({ ...it })));
-            // also set selectedIds from localStorage (we don't track recipes on server yet)
-            const savedIds = JSON.parse(localStorage.getItem('cartRecipeIds') || '[]');
-            setSelectedIds(savedIds);
             return;
           }
         } catch (err) {
-          // ignore and fallback to local
-          // eslint-disable-next-line no-console
-          console.warn('Cart load failed, using local storage', err);
+          // ignore and fallback to empty
+          console.warn('Cart load failed', err);
         }
       }
-
-      const selectedRecipes = recipesData.filter((r) => selectedIds.includes(r.id));
-      const aggregated = aggregateIngredients(selectedRecipes);
-      // load checked state from localStorage
-      const stored = JSON.parse(localStorage.getItem('cartItemsChecked') || '{}');
-      const withChecked = aggregated.map((it) => ({ ...it, checked: !!stored[it.text] }));
-      setItems(withChecked);
-      localStorage.setItem('cartRecipeIds', JSON.stringify(selectedIds));
+      setItems([]);
     };
     load();
-  }, [selectedIds]);
+  }, []);
 
+  // Update cart items when recipes are selected
   useEffect(() => {
-    const map = {};
-    items.forEach((it) => { map[it.text] = !!it.checked; });
-    localStorage.setItem('cartItemsChecked', JSON.stringify(map));
-    // persist to backend if user logged in
+    if (selectedIds.length === 0) {
+      return;
+    }
+    const selectedRecipes = userRecipes.filter((r) => selectedIds.includes(r._id));
+    const aggregated = aggregateIngredients(selectedRecipes);
+    setItems(aggregated);
+  }, [selectedIds, userRecipes]);
+
+  // Save cart to backend when items change
+  useEffect(() => {
     const username = getCookie('username');
-    if (username) {
+    if (username && items.length > 0) {
       fetch(`/api/cart/${encodeURIComponent(username)}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -114,19 +140,40 @@ export default function ViewCart() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Left: recipes */}
         <div className="md:col-span-1 bg-white p-4 rounded-lg shadow-sm border">
-          <h2 className="font-semibold mb-3">Recipes</h2>
+          <h2 className="font-semibold mb-3">Your Recipes</h2>
           <p className="text-xs text-gray-500 mb-3">Select recipes to add their ingredients to the shopping list</p>
-          <div className="space-y-3 max-h-[60vh] overflow-auto pr-2">
-            {recipesData.map((r) => (
-              <div key={r.id} className="flex items-start gap-3">
-                <input type="checkbox" checked={selectedIds.includes(r.id)} onChange={() => toggleRecipe(r.id)} className="mt-2" />
-                <div>
-                  <div className="font-medium">{r.title}</div>
-                  <div className="text-xs text-gray-500">{r.time} • {r.servings} servings</div>
-                </div>
+          
+          {loadingRecipes ? (
+            <div className="text-gray-500">Loading recipes...</div>
+          ) : recipesError ? (
+            <div className="text-red-500 text-sm">{recipesError}</div>
+          ) : userRecipes.length === 0 ? (
+            <div className="text-center py-8">
+              <div className="text-gray-400 text-3xl mb-2">📝</div>
+              <div className="text-gray-600 text-sm">
+                You currently have no saved recipes
               </div>
-            ))}
-          </div>
+            </div>
+          ) : (
+            <div className="space-y-3 max-h-[60vh] overflow-auto pr-2">
+              {userRecipes.map((r) => (
+                <div key={r._id} className="flex items-start gap-3">
+                  <input 
+                    type="checkbox" 
+                    checked={selectedIds.includes(r._id)} 
+                    onChange={() => toggleRecipe(r._id)} 
+                    className="mt-2" 
+                  />
+                  <div>
+                    <div className="font-medium">{r.title}</div>
+                    <div className="text-xs text-gray-500">
+                      {r.prepTime + r.cookTime} min • {r.servings} servings
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Middle: shopping list */}
