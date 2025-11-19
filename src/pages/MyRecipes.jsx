@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import RecipeCard from '../components/RecipeCard';
 import RecipeCardShimmer from '../components/RecipeCardShimmer';
-import { ChefHat, AlertCircle, Trash2, X } from 'lucide-react';
+import { ChefHat, AlertCircle, X } from 'lucide-react';
 import AuthDialog, { getCookie } from '../components/AuthDialog';
 
 export default function MyRecipes() {
@@ -21,9 +21,9 @@ export default function MyRecipes() {
         }
     }, [username]);
 
-    const fetchMyRecipes = async () => {
+    const fetchMyRecipes = async (showLoading = true) => {
         try {
-            setLoading(true);
+            if (showLoading) setLoading(true);
             const response = await fetch(`http://localhost:4000/api/recipes/user/${username}`);
             if (!response.ok) throw new Error('Failed to fetch your recipes');
             const data = await response.json();
@@ -31,7 +31,7 @@ export default function MyRecipes() {
         } catch (err) {
             setError(err.message);
         } finally {
-            setLoading(false);
+            if (showLoading) setLoading(false);
         }
     };
 
@@ -59,11 +59,9 @@ export default function MyRecipes() {
                 throw new Error(data.message || 'Failed to delete recipe');
             }
 
-            // Remove recipe from state
-            setRecipes(prev => prev.filter(r =>
-                (r._id || r.id) !== recipeId
-            ));
-
+            // Remove recipe from state immediately
+            setRecipes(prev => prev.filter(r => (r._id || r.id) !== recipeId));
+            await fetchMyRecipes(false);
             setDeleteConfirm(null);
         } catch (err) {
             alert(`Error deleting recipe: ${err.message}`);
@@ -126,16 +124,11 @@ export default function MyRecipes() {
             {!loading && !error && recipes.length > 0 && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     {recipes.map((recipe) => (
-                        <div key={recipe._id || recipe.id} className="relative">
-                            <RecipeCard recipe={recipe} />
-                            <button
-                                onClick={() => handleDeleteClick(recipe)}
-                                className="absolute top-4 left-4 bg-red-500 hover:bg-red-600 text-white p-2 rounded-full shadow-lg transition-all hover:scale-110 z-10"
-                                title="Delete recipe"
-                            >
-                                <Trash2 size={18} />
-                            </button>
-                        </div>
+                        <RecipeCard
+                            key={recipe._id || recipe.id}
+                            recipe={recipe}
+                            onDelete={handleDeleteClick}
+                        />
                     ))}
                 </div>
             )}
