@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Clock, Users, ChefHat, Loader2, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Clock, Users, ChefHat, Loader2, AlertCircle, ShoppingCart } from 'lucide-react';
+import { getCookie } from '../components/AuthDialog';
 
 export default function RecipeView() {
     const { id } = useParams();
@@ -15,6 +16,8 @@ export default function RecipeView() {
     const [categoryError, setCategoryError] = useState('');
     const [categoryLoading, setCategoryLoading] = useState(false);
 
+    const [addingToCart, setAddingToCart] = useState(false);
+    const [cartMessage, setCartMessage] = useState(null);
 
     useEffect(() => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -94,7 +97,6 @@ export default function RecipeView() {
             name: cat.name
             };
         });
-        console.log(fullCategoryObjects);
         setCategoryLoading(true);
         setCategoryError('');
          try {
@@ -136,6 +138,49 @@ export default function RecipeView() {
                 return 'bg-red-50 hover:bg-red-100 text-red-500';
             default:
                 return 'bg-green-50 hover:bg-green-100 text-green-500';
+        }
+    };
+            
+    const addToCart = async () => {
+        const username = getCookie('username');
+        if (!username) {
+            setCartMessage({ type: 'error', text: 'Please log in to add items to cart' });
+            setTimeout(() => setCartMessage(null), 3000);
+            return;
+        }
+
+        if (!recipe) {
+            setCartMessage({ type: 'error', text: 'Recipe not loaded' });
+            setTimeout(() => setCartMessage(null), 3000);
+            return;
+        }
+
+        try {
+            setAddingToCart(true);
+            const response = await fetch(`/api/cart/${encodeURIComponent(username)}/add-recipe`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ recipe }),
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to add to cart');
+            }
+
+            const data = await response.json();
+            setCartMessage({ 
+                type: 'success', 
+                text: `Added ${data.addedCount} ingredients to cart!` 
+            });
+            setTimeout(() => setCartMessage(null), 3000);
+        } catch (err) {
+            console.error('Error adding to cart:', err);
+            setCartMessage({ type: 'error', text: 'Failed to add to cart' });
+            setTimeout(() => setCartMessage(null), 3000);
+        } finally {
+            setAddingToCart(false);
         }
     };
 
@@ -306,7 +351,24 @@ export default function RecipeView() {
                                     by <span className="font-semibold text-gray-700">{recipe.username}</span>
                                 </span>
                             )}
+                            <button
+                                onClick={addToCart}
+                                disabled={addingToCart}
+                                className="ml-auto px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-semibold flex items-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <ShoppingCart size={18} />
+                                {addingToCart ? 'Adding...' : 'Add to Cart'}
+                            </button>
                         </div>
+                        {cartMessage && (
+                            <div className={`mt-4 px-4 py-3 rounded-lg ${
+                                cartMessage.type === 'success' 
+                                    ? 'bg-green-50 text-green-700 border border-green-200' 
+                                    : 'bg-red-50 text-red-700 border border-red-200'
+                            }`}>
+                                {cartMessage.text}
+                            </div>
+                        )}
                         {recipe.externalLink && (
                             <div className="mt-4">
                                 <a
