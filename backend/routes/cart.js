@@ -1,7 +1,13 @@
 import express from 'express';
 import createHttpError from 'http-errors';
-import { getCartByUsername, upsertCart, deleteCart, removeCartItem, removeRecipeIngredients } from '../data/shoppingCart.js';
-import { getCartByUsername, upsertCart, deleteCart, addRecipeToCart } from '../data/shoppingCart.js';
+import {
+  getCartByUsername,
+  upsertCart,
+  deleteCart,
+  removeCartItem,
+  removeRecipeIngredients,
+  addRecipeToCart
+} from '../data/shoppingCart.js';
 
 const router = express.Router();
 
@@ -56,15 +62,25 @@ router.delete('/:username/items/:itemText', async (req, res, next) => {
 });
 
 // POST /api/cart/:username/remove-recipe - remove all ingredients of a recipe
-// Body: { recipe: { ingredients: [...] } }
 router.post('/:username/remove-recipe', async (req, res, next) => {
+  try {
+    const { username } = req.params;
+    const { recipe } = req.body || {};
+    if (!recipe) throw createHttpError(400, 'recipe required');
+    const result = await removeRecipeIngredients(username, recipe);
+    res.json(result);
+  } catch (err) {
+    if (err && err.status) return res.status(err.status).json({ message: err.message });
+    return next(err);
+  }
+});
+
 // POST /api/cart/:username/add-recipe - add recipe ingredients to cart
 router.post('/:username/add-recipe', async (req, res, next) => {
   try {
     const { username } = req.params;
     const { recipe } = req.body || {};
     if (!recipe) throw createHttpError(400, 'recipe required');
-    const result = await removeRecipeIngredients(username, recipe);
     const result = await addRecipeToCart(username, recipe);
     res.json(result);
   } catch (err) {

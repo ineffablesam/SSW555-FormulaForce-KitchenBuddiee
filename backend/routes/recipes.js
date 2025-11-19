@@ -10,12 +10,19 @@ const router = express.Router();
 // GET /api/recipes (get ALL recipes)
 router.get('/', async (req, res, next) => {
     try {
-        const { username, category } = req.query;
-        let filter = {};
+        const { username, category, ingredients } = req.query;
+        const filter = {};
         if (username) filter.username = username;
         if (category) filter.category = category;
+        if (ingredients) {
+            filter.ingredients = ingredients
+                .split(',')
+                .map(item => item.trim())
+                .filter(Boolean);
+        }
+
         console.log('📚 Fetching all recipes');
-        const recipes = await getAllRecipes(filter );
+        const recipes = await getAllRecipes(filter);
         console.log(`✅ Found ${recipes.length} recipes`);
         res.json({
             success: true,

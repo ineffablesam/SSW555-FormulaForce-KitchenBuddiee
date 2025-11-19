@@ -3,6 +3,7 @@ import createHttpError from 'http-errors';
 import { dbConnection } from '../config/mongoConnection.js';
 
 const RECIPES_COLLECTION = 'recipes';
+const escapeRegex = (text = '') => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 export async function createRecipe(recipeData) {
     const db = await dbConnection();
@@ -33,8 +34,26 @@ export async function getAllRecipes(filter = {}) {
     const db = await dbConnection();
     const collection = db.collection(RECIPES_COLLECTION);
     const query = {};
+    const andConditions = [];
+
     if (filter.username) query.username = filter.username;
     if (filter.category) query.category = filter.category;
+
+    if (Array.isArray(filter.ingredients) && filter.ingredients.length) {
+        const ingredientAnds = filter.ingredients.map(term => ({
+            ingredients: {
+                $elemMatch: {
+                    $regex: new RegExp(escapeRegex(term), 'i')
+                }
+            }
+        }));
+        andConditions.push(...ingredientAnds);
+    }
+
+    if (andConditions.length) {
+        query.$and = andConditions;
+    }
+
     return await collection.find(query).sort({ createdAt: -1 }).toArray();
 }
 
