@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import RecipeCard from '../components/RecipeCard';
 import { ChefHat, Loader2, AlertCircle, Search, X } from 'lucide-react';
 import AddNewRecipe from './AddNewRecipe';
@@ -16,21 +15,80 @@ export default function Home() {
     const [error, setError] = useState(null);
     const [showAuth, setShowAuth] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [ingredientQuery, setIngredientQuery] = useState('');
+    const [ingredientResults, setIngredientResults] = useState([]);
+    const [searchingIngredients, setSearchingIngredients] = useState(false);
+    const [ingredientError, setIngredientError] = useState(null);
     const username = getCookie('username');
-    const navigate = useNavigate(); 
 
     // Fetch all recipes on component mount
     useEffect(() => {
         fetchRecipes();
     }, []);
 
-    // Filter recipes when search query changes
+    // Ingredient search effect (debounced)
     useEffect(() => {
+        const trimmed = ingredientQuery.trim();
+        if (!trimmed) {
+            setIngredientResults([]);
+            setIngredientError(null);
+            setSearchingIngredients(false);
+            return;
+        }
+
+        const terms = trimmed
+            .split(',')
+            .map(term => term.trim())
+            .filter(Boolean);
+
+        if (terms.length === 0) {
+            setIngredientResults([]);
+            setIngredientError(null);
+            setSearchingIngredients(false);
+            return;
+        }
+
+        const controller = new AbortController();
+        setSearchingIngredients(true);
+        setIngredientError(null);
+        setIngredientResults([]);
+
+        const timeoutId = setTimeout(async () => {
+            try {
+                const response = await fetch(`http://localhost:4000/api/recipes?ingredients=${encodeURIComponent(terms.join(','))}`, {
+                    signal: controller.signal
+                });
+                if (!response.ok) {
+                    throw new Error('Failed to search recipes by ingredient');
+                }
+                const data = await response.json();
+                setIngredientResults(data.recipes || []);
+            } catch (err) {
+                if (err.name === 'AbortError') return;
+                console.error('Error searching recipes by ingredient:', err);
+                setIngredientError(err.message);
+                setIngredientResults([]);
+            } finally {
+                setSearchingIngredients(false);
+            }
+        }, 300);
+
+        return () => {
+            clearTimeout(timeoutId);
+            controller.abort();
+        };
+    }, [ingredientQuery]);
+
+    // Filter recipes when search or ingredient data changes
+    useEffect(() => {
+        const hasIngredientSearch = ingredientQuery.trim().length > 0;
+        const sourceRecipes = hasIngredientSearch ? ingredientResults : recipes;
+
         if (searchQuery.trim() === '') {
-            setFilteredRecipes(recipes);
+            setFilteredRecipes(sourceRecipes);
         } else {
             const query = searchQuery.toLowerCase();
-            const filtered = recipes.filter((recipe) => {
+            const filtered = sourceRecipes.filter((recipe) => {
                 const titleMatch = recipe.title?.toLowerCase().includes(query);
                 const descriptionMatch = recipe.description?.toLowerCase().includes(query);
                 const ingredientsMatch = recipe.ingredients?.some(ing =>
@@ -44,7 +102,7 @@ export default function Home() {
             });
             setFilteredRecipes(filtered);
         }
-    }, [searchQuery, recipes]);
+    }, [searchQuery, recipes, ingredientQuery, ingredientResults]);
 
     const fetchRecipes = async () => {
         try {
@@ -86,6 +144,12 @@ export default function Home() {
 
     const clearSearch = () => {
         setSearchQuery('');
+    };
+
+    const clearIngredientSearch = () => {
+        setIngredientQuery('');
+        setIngredientResults([]);
+        setIngredientError(null);
     };
 
     if (showAddRecipe) {
@@ -136,6 +200,47 @@ export default function Home() {
                         </p>
                     )}
                 </div>
+
+                {/* Ingredient Search */}
+                <div className="relative max-w-2xl mt-6">
+                    <label className="text-sm font-semibold text-gray-700 block mb-2">
+                        Search by ingredients (use commas for multiple items)
+                    </label>
+                    <div className="relative">
+                        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                        <input
+                            type="text"
+                            placeholder="e.g., tomato, basil, garlic"
+                            value={ingredientQuery}
+                            onChange={(e) => setIngredientQuery(e.target.value)}
+                            className="w-full pl-12 pr-12 py-3 border-2 border-gray-200 rounded-lg focus:border-orange-500 focus:outline-none transition-colors text-gray-900 placeholder-gray-400"
+                        />
+                        {ingredientQuery && (
+                            <button
+                                onClick={clearIngredientSearch}
+                                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        )}
+                    </div>
+                    <div className="flex items-center gap-3 mt-2 text-sm text-gray-600 min-h-[1.5rem]">
+                        {searchingIngredients && (
+                            <span className="inline-flex items-center gap-2 text-orange-600">
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                Searching ingredients...
+                            </span>
+                        )}
+                        {!searchingIngredients && ingredientQuery && (
+                            <span>
+                                Showing {ingredientResults.length} recipe{ingredientResults.length !== 1 ? 's' : ''} with those ingredients
+                            </span>
+                        )}
+                        {ingredientError && (
+                            <span className="text-red-600">{ingredientError}</span>
+                        )}
+                    </div>
+                </div>
             </div>
 
             {/* Loading State */}
@@ -166,7 +271,7 @@ export default function Home() {
             )}
 
             {/* Empty State */}
-            {!loading && !error && recipes.length === 0 && (
+            {!loading && !error && recipes.length === 0 && ingredientQuery.trim() === '' && (
                 <div className="flex flex-col items-center justify-center py-20">
                     <div className="bg-orange-50 border-2 border-orange-200 rounded-lg p-8 max-w-md w-full text-center">
                         <ChefHat className="w-16 h-16 text-orange-400 mx-auto mb-4" />
@@ -184,8 +289,27 @@ export default function Home() {
                 </div>
             )}
 
+            {/* No Ingredient Matches */}
+            {!loading && !error && ingredientQuery.trim() !== '' && !searchingIngredients && ingredientResults.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-20">
+                    <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-8 max-w-md w-full text-center">
+                        <ChefHat className="w-16 h-16 text-blue-400 mx-auto mb-4" />
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">No Ingredient Matches</h3>
+                        <p className="text-gray-600 mb-6">
+                            Try removing one ingredient or adjusting your list to see matching recipes.
+                        </p>
+                        <button
+                            onClick={clearIngredientSearch}
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+                        >
+                            Clear Ingredient Search
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* No Search Results */}
-            {!loading && !error && recipes.length > 0 && filteredRecipes.length === 0 && (
+            {!loading && !error && recipes.length > 0 && filteredRecipes.length === 0 && !(ingredientQuery.trim() !== '' && ingredientResults.length === 0) && (
                 <div className="flex flex-col items-center justify-center py-20">
                     <div className="bg-gray-50 border-2 border-gray-200 rounded-lg p-8 max-w-md w-full text-center">
                         <Search className="w-16 h-16 text-gray-400 mx-auto mb-4" />

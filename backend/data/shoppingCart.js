@@ -130,6 +130,8 @@ export const removeRecipeIngredients = async (username, recipe) => {
   const writeResult = await col.updateOne({ username: u }, { $set: { items: updated, updatedAt: new Date() } });
   if (!writeResult.acknowledged) throw createStatusError('Failed to update cart', 500);
   return { username: u, items: updated, removed: true, changedCount, removedTexts };
+};
+
 export const addRecipeToCart = async (username, recipe) => {
   const u = ensureString(username, 'username');
   
@@ -194,4 +196,3 @@ export default {
   removeRecipeIngredients,
   addRecipeToCart,
 };
-
