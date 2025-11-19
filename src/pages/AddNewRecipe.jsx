@@ -9,7 +9,7 @@ const AddNewRecipe = ({ onSubmit, onCancel }) => {
         cookTime: '',
         servings: '',
         difficulty: 'medium',
-        category: '',
+        category: [],
         description: '',
         externalLink: '',
         ingredients: [{ id: Date.now(), text: '' }],
@@ -73,10 +73,6 @@ const AddNewRecipe = ({ onSubmit, onCancel }) => {
             newErrors.servings = 'Servings is required';
         }
 
-        if (!formData.category.trim()) {
-            newErrors.category = 'Category is required';
-        }
-
         if (formData.externalLink && !isValidUrl(formData.externalLink.trim())) {
             newErrors.externalLink = 'Enter a valid URL starting with http or https';
         }
@@ -107,7 +103,7 @@ const AddNewRecipe = ({ onSubmit, onCancel }) => {
                 cookTime: parseInt(formData.cookTime),
                 servings: parseInt(formData.servings),
                 difficulty: formData.difficulty,
-                category: formData.category.trim(),
+                category: [],
                 description: formData.description.trim(),
                 externalLink: formData.externalLink?.trim() || '',
                 ingredients: validIngredients,
@@ -394,29 +390,6 @@ const AddNewRecipe = ({ onSubmit, onCancel }) => {
                                     </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <div>
-                                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                                Category <span className="text-red-500">*</span>
-                                            </label>
-                                            <input
-                                                type="text"
-                                                value={formData.category}
-                                                onChange={(e) => {
-                                                    setFormData({ ...formData, category: e.target.value });
-                                                    if (errors.category) setErrors({ ...errors, category: null });
-                                                }}
-                                                className={`w-full px-4 py-3 border-2 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all ${errors.category ? 'border-red-300 bg-red-50' : 'border-gray-300 hover:border-orange-300'
-                                                    }`}
-                                                placeholder="e.g., Italian, Dessert, Breakfast"
-                                            />
-                                            {errors.category && (
-                                                <div className="flex items-center gap-1 mt-2 text-red-600 text-sm">
-                                                    <AlertCircle className="w-4 h-4" />
-                                                    <span>{errors.category}</span>
-                                                </div>
-                                            )}
-                                        </div>
-
                                         <div>
                                             <label className="block text-sm font-semibold text-gray-700 mb-2">
                                                 Difficulty Level
