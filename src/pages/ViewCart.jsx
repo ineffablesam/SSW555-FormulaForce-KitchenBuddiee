@@ -79,16 +79,6 @@ export default function ViewCart() {
     load();
   }, []);
 
-  // Update cart items when recipes are selected
-  useEffect(() => {
-    if (selectedIds.length === 0) {
-      return;
-    }
-    const selectedRecipes = userRecipes.filter((r) => selectedIds.includes(r._id));
-    const aggregated = aggregateIngredients(selectedRecipes);
-    setItems(aggregated);
-  }, [selectedIds, userRecipes]);
-
   // Save cart to backend when items change
   useEffect(() => {
     const username = getCookie('username');
@@ -105,36 +95,33 @@ export default function ViewCart() {
   }, [items]);
 
   const toggleRecipe = async (id) => {
-    setSelectedIds((prev) => {
-      const isSelected = prev.includes(id);
-      const next = isSelected ? prev.filter((x) => x !== id) : [...prev, id];
+    const isSelected = selectedIds.includes(id);
+    const next = isSelected ? selectedIds.filter((x) => x !== id) : [...selectedIds, id];
 
-      // After computing next selection, aggregate ingredients from remaining recipes
-      const selectedRecipes = recipesData.filter((r) => next.includes(r.id));
-      const aggregated = aggregateIngredients(selectedRecipes);
+    // Update selected IDs first
+    setSelectedIds(next);
 
-      // Preserve checked state for items that still exist
-      const prevCheckedMap = new Map(items.map((it) => [it.text, !!it.checked]));
-      const merged = aggregated.map((it) => ({
-        ...it,
-        checked: prevCheckedMap.get(it.text) || false,
-      }));
-      setItems(merged);
+    // After computing next selection, aggregate ingredients from remaining recipes
+    const selectedRecipes = userRecipes.filter((r) => next.includes(r._id));
+    const aggregated = aggregateIngredients(selectedRecipes);
 
-      // Persist cart to backend explicitly (items effect also handles, but do immediate for responsiveness)
-      const username = getCookie('username');
-      if (username) {
-        fetch(`/api/cart/${encodeURIComponent(username)}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ items: merged }),
-        }).catch((err) => console.warn('Failed to sync cart after recipe toggle', err));
-      }
+    // Preserve checked state for items that still exist
+    const prevCheckedMap = new Map(items.map((it) => [it.text, !!it.checked]));
+    const merged = aggregated.map((it) => ({
+      ...it,
+      checked: prevCheckedMap.get(it.text) || false,
+    }));
+    setItems(merged);
 
-      // Update localStorage selection
-      localStorage.setItem('cartRecipeIds', JSON.stringify(next));
-      return next;
-    });
+    // Persist cart to backend explicitly
+    const username = getCookie('username');
+    if (username) {
+      fetch(`/api/cart/${encodeURIComponent(username)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: merged }),
+      }).catch((err) => console.warn('Failed to sync cart after recipe toggle', err));
+    }
   };
 
   const toggleItem = (text) => {
