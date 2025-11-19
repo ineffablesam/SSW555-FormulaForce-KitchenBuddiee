@@ -1,8 +1,8 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom';
-import { Clock, Users, ChefHat, Heart } from 'lucide-react';
+import { Clock, Users, ChefHat, Heart, Trash2 } from 'lucide-react';
 
-export const RecipeCard = ({ recipe }) => {
+export const RecipeCard = ({ recipe, onDelete = null }) => {
   const [isFavorite, setIsFavorite] = useState(false);
   const navigate = useNavigate();
 
@@ -25,18 +25,32 @@ export const RecipeCard = ({ recipe }) => {
             <ChefHat className="w-16 h-16 text-white opacity-50" />
           </div>
         )}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsFavorite(!isFavorite);
-          }}
-          className="absolute top-3 right-3 bg-white rounded-full p-2 shadow-lg hover:scale-110 transition-transform"
-        >
-          <Heart
-            size={20}
-            className={isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-600'}
-          />
-        </button>
+        <div className="absolute top-3 inset-x-3 flex justify-between items-center gap-2 pointer-events-none">
+          {typeof onDelete === 'function' && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(recipe);
+              }}
+              className="bg-red-500 hover:bg-red-600 text-white rounded-full p-2 shadow-lg transition-transform hover:scale-110 pointer-events-auto"
+              title="Delete recipe"
+            >
+              <Trash2 size={18} />
+            </button>
+          )}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsFavorite(!isFavorite);
+            }}
+            className="bg-white rounded-full p-2 shadow-lg hover:scale-110 transition-transform pointer-events-auto ml-auto"
+          >
+            <Heart
+              size={20}
+              className={isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-600'}
+            />
+          </button>
+        </div>
 
         {/* Category Badge */}
         {recipe.category && (
