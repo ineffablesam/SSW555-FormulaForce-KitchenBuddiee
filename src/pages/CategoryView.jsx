@@ -19,11 +19,11 @@ export default function CategoryDetail() {
       setLoading(true);
       setError(null);
       const res = await fetch(
-        `http://localhost:4000/api/recipes?username=${username}&category=${encodeURIComponent(categoryName)}`
+        `http://localhost:4000/api/categories/${username}/${encodeURIComponent(categoryName)}`
       );
       if (!res.ok) throw new Error('Failed to fetch recipes');
       const data = await res.json();
-      setRecipes(data.recipes || []);
+      setRecipes(data.category.recipes || []);
     } catch (err) {
       console.error('Error fetching recipes:', err);
       setError(err.message);
@@ -53,7 +53,7 @@ export default function CategoryDetail() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {recipes.map((recipe) => (
-          <RecipeCard key={recipe._id || recipe.id} recipe={recipe} />
+          <RecipeCard key={recipe._id} recipe={recipe} />
         ))}
       </div>
     </div>

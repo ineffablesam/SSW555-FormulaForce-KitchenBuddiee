@@ -1,12 +1,45 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom';
 import { Clock, Users, ChefHat, Heart, Trash2 } from 'lucide-react';
 
 export const RecipeCard = ({ recipe, onDelete = null }) => {
   const [isFavorite, setIsFavorite] = useState(false);
   const navigate = useNavigate();
-
   const recipeId = recipe._id || recipe.id;
+
+  const isPartial =
+    !recipe.title ||
+    recipe.prepTime === undefined ||
+    recipe.cookTime === undefined ||
+    recipe.servings === undefined;
+
+  const [fullRecipe, setFullRecipe] = useState(isPartial ? null : recipe);
+
+  useEffect(() => {
+    if (isPartial && recipeId) {
+      (async () => {
+        try {
+          const res = await fetch(`http://localhost:4000/api/recipes/${recipeId}`);
+          const data = await res.json();
+          setFullRecipe(data.recipe);
+        } catch (err) {
+          console.error("Failed to load recipe:", err);
+        }
+      })();
+    }
+  }, [recipeId, isPartial]);
+
+    if (!fullRecipe) {
+    return (
+      <div className="p-6 bg-gray-100 rounded-xl shadow animate-pulse">
+        <div className="h-48 bg-gray-300 mb-4 rounded-lg" />
+        <div className="h-4 bg-gray-300 w-1/2 mb-2 rounded" />
+        <div className="h-4 bg-gray-300 w-1/3 rounded" />
+      </div>
+    );
+  }
+
+  recipe = fullRecipe;
 
   return (
     <div
@@ -55,9 +88,14 @@ export const RecipeCard = ({ recipe, onDelete = null }) => {
         {/* Category Badge */}
         {recipe.category && (
           <div className="absolute bottom-3 left-3">
-            <span className="px-3 py-1 bg-white/90 backdrop-blur-sm text-orange-700 rounded-full text-xs font-semibold shadow-lg">
-              {recipe.category}
-            </span>
+            {recipe.category.map(cat => (
+              <span
+                key={cat._id}
+                className="px-2 py-1 bg-white/90 backdrop-blur-sm text-orange-700 rounded-full text-xs font-semibold shadow-lg"
+              >
+                {cat.name}
+              </span>
+            ))}
           </div>
         )}
       </div>

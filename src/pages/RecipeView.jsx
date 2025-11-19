@@ -10,6 +10,12 @@ export default function RecipeView() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [scrolled, setScrolled] = useState(false);
+    const [categories, setCategories] = useState([]);
+    const [showCategoryModal, setShowCategoryModal] = useState(false);
+    const [selectedCategories, setSelectedCategories] = useState([]);
+    const [categoryError, setCategoryError] = useState('');
+    const [categoryLoading, setCategoryLoading] = useState(false);
+
     const [addingToCart, setAddingToCart] = useState(false);
     const [cartMessage, setCartMessage] = useState(null);
 
@@ -32,7 +38,6 @@ export default function RecipeView() {
             setError(null);
 
             const response = await fetch(`http://localhost:4000/api/recipes/${id}`);
-
             if (!response.ok) {
                 if (response.status === 404) {
                     throw new Error('Recipe not found');
@@ -50,6 +55,92 @@ export default function RecipeView() {
         }
     };
 
+    const fetchCategories = async () => {
+        if (!recipe?.username) {
+            console.error("No username available for fetching categories");
+            setCategoryError("Cannot load categories: no username found");
+            return false;
+        }
+        try {
+            setCategoryLoading(true);
+            const response = await fetch(`http://localhost:4000/api/categories/${recipe.username}`);
+            if (!response.ok) throw new Error("Failed to fetch categories");
+            const data = await response.json();
+            setCategories(data.categories || []);
+            setCategoryError('');
+            return true;
+        } catch (err) {
+            console.error("Error fetching categories:", err);
+            setCategoryError("Failed to load categories");
+            setCategories([]);
+            return false;
+        } finally {
+            setCategoryLoading(false);
+        }
+    };
+
+    const openCategoryModal = async () => {
+        setShowCategoryModal(true); 
+        fetchCategories();
+    };
+
+    const updateRecipeCategory = async () => {
+        if (selectedCategories.length === 0) {
+            setCategoryError("Please select at least one category");
+            return;
+        }
+
+        const fullCategoryObjects = selectedCategories.map(catId => {
+            const cat = categories.find(c => c._id === catId);
+            return {
+            id: cat._id,
+            name: cat.name
+            };
+        });
+        setCategoryLoading(true);
+        setCategoryError('');
+         try {
+            const response = await fetch(`http://localhost:4000/api/recipes/${id}/category`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({ category: fullCategoryObjects })
+            });
+            const data = await response.json();
+
+            if (!response.ok) {
+                setCategoryError(data.message || "Failed to update category");
+                return;
+            }
+
+            setRecipe(prev => ({
+                ...prev,
+                category: [...prev.category, ...fullCategoryObjects]
+            }));
+
+            setShowCategoryModal(false);
+            fetchRecipe(); // Refresh recipe
+        } catch (err) {
+            console.error("Error updating category:", err);
+            setCategoryError("Unexpected error");
+        } finally {
+            setCategoryLoading(false);
+        }
+    };
+
+    const getDifficultyColor = (difficulty) => {
+        switch (difficulty?.toLowerCase()) {
+            case 'easy':
+                return 'bg-green-50 hover:bg-green-100 text-green-500';
+            case 'medium':
+                return 'bg-yellow-50 hover:bg-yellow-100 text-yellow-500';
+            case 'hard':
+                return 'bg-red-50 hover:bg-red-100 text-red-500';
+            default:
+                return 'bg-green-50 hover:bg-green-100 text-green-500';
+        }
+    };
+            
     const addToCart = async () => {
         const username = getCookie('username');
         if (!username) {
@@ -128,21 +219,65 @@ export default function RecipeView() {
         );
     }
 
-    const getDifficultyColor = (difficulty) => {
-        switch (difficulty?.toLowerCase()) {
-            case 'easy':
-                return 'bg-green-50 hover:bg-green-100 text-green-500';
-            case 'medium':
-                return 'bg-yellow-50 hover:bg-yellow-100 text-yellow-500';
-            case 'hard':
-                return 'bg-red-50 hover:bg-red-100 text-red-500';
-            default:
-                return 'bg-green-50 hover:bg-green-100 text-green-500';
-        }
-    };
-
     return (
         <div className="min-h-screen bg-gray-50 pb-12">
+            {/* MODAL */}
+            {showCategoryModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                <div className="bg-white rounded-xl p-6 w-11/12 max-w-md shadow-lg">
+                <h3 className="text-lg font-semibold mb-4">Select Categories</h3>
+
+                <div className="mb-4 max-h-60 overflow-y-auto">
+                    {categoryLoading ? (
+                    <p>Loading categories...</p>
+                    ) : (
+                    categories.map(cat => (
+                        <label key={cat._id} className="flex items-center gap-2 mb-2 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            value={cat._id}
+                            checked={selectedCategories.includes(cat._id)}
+                            onChange={(e) => {
+                            const checked = e.target.checked;
+                            setSelectedCategories(prev => {
+                                if (checked) {
+                                return [...prev, cat._id];
+                                } else {
+                                return prev.filter(id => id !== cat._id);
+                                }
+                            });
+                            }}
+                            className="w-4 h-4"
+                        />
+                        <span>{cat.name}</span>
+                        </label>
+                    ))
+                    )}
+                </div>
+
+                {categoryError && <p className="text-red-500 mb-2">{categoryError}</p>}
+
+                <div className="flex justify-end gap-3">
+                    <button
+                    onClick={() => setShowCategoryModal(false)}
+                    className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 transition"
+                    >
+                    Cancel
+                    </button>
+                    <button
+                    onClick={updateRecipeCategory}
+                    disabled={selectedCategories.length === 0 || categoryLoading}
+                    className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 transition disabled:opacity-50"
+                    >
+                    {categoryLoading ? "Adding..." : "Add"}
+                    </button>
+                </div>
+                </div>
+            </div>
+            )}
+
+
+            {/* Back Button */}
             <div
                 className={`
                    sticky sm:sticky top-[55px] sm:top-0 z-50 sm:z-20 transition-all duration-200 
@@ -196,10 +331,21 @@ export default function RecipeView() {
                                 {recipe.description}
                             </p>
                         )}
-                        <div className="flex items-center gap-3 mt-4 flex-wrap">
-                            <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm font-medium">
-                                {recipe.category}
-                            </span>
+                        <div className="flex items-center gap-3 mt-4">
+                            {recipe.category?.map(cat => (
+                                <span
+                                    key={cat._id}
+                                    className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm font-medium"
+                                >
+                                    {cat.name}
+                                </span>
+                            ))}
+                            <button
+                                onClick={openCategoryModal}
+                                className="ml-3 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium hover:bg-blue-200 transition"
+                            >
+                                Add to Category
+                            </button>
                             {recipe.username && (
                                 <span className="text-sm text-gray-500">
                                     by <span className="font-semibold text-gray-700">{recipe.username}</span>

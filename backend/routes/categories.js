@@ -3,6 +3,7 @@ import {
   createCategory,
   getAllCategories,
   getCategoryById,
+  getCategoryByName,
   updateCategory,
   deleteCategory,
 } from '../data/categories.js';
@@ -13,9 +14,7 @@ const router = express.Router();
 router.get('/:username', async (req, res, next) => {
   try {
     const { username } = req.params;
-    console.log('Fetching categories for:', username);
     const categories = await getAllCategories(username);
-    console.log('Found categories:', categories);
     res.json({ success: true, categories });
   } catch (error) {
     next(error);
@@ -39,9 +38,9 @@ router.get('/:username/:categoryName', async (req, res, next) => {
 // POST /api/categories (create new category)
 router.post('/', async (req, res, next) => {
   try {
-    const { username, name, description } = req.body;
+    const { username, name, description, color } = req.body;
 
-    console.log('Creating category with:', { name, description, username });
+    console.log('Creating category with:', { name, description, username, color});
 
     if (!name) {
       return res.status(400).json({
@@ -54,6 +53,7 @@ router.post('/', async (req, res, next) => {
       name: name.trim(),
       description: description?.trim() || '',
       username,
+      color: color.trim(),
     });
 
     res.status(201).json({

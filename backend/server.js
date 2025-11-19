@@ -20,7 +20,7 @@ app.use(helmet());
 app.use(cors({
   origin: 'http://localhost:5173', // Vite's default port
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
