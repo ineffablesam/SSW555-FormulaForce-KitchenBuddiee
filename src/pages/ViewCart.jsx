@@ -1,135 +1,112 @@
 import React, { useEffect, useState } from 'react';
-import { ShoppingCart, Trash2, Clipboard } from 'lucide-react';
+import { ShoppingCart, Trash2, Clipboard, Plus, X } from 'lucide-react';
 import { getCookie } from '../components/AuthDialog';
-
-function aggregateIngredients(selectedRecipes) {
-  const map = new Map();
-  selectedRecipes.forEach((r) => {
-    (r.ingredients || []).forEach((ing) => {
-      const key = ing.trim();
-      const prev = map.get(key) || { text: key, qty: 0, checked: false };
-      prev.qty += 1; // simple count of occurrences
-      map.set(key, prev);
-    });
-  });
-  return Array.from(map.values());
-}
+import { toast } from 'sonner';
 
 export default function ViewCart() {
-  const [selectedIds, setSelectedIds] = useState([]);
   const [items, setItems] = useState([]);
-  const [userRecipes, setUserRecipes] = useState([]);
-  const [loadingRecipes, setLoadingRecipes] = useState(true);
-  const [recipesError, setRecipesError] = useState(null);
-
-  // Fetch user's recipes from database
-  useEffect(() => {
-    const fetchUserRecipes = async () => {
-      const username = getCookie('username');
-      if (!username) {
-        setRecipesError('You must be logged in to view your recipes.');
-        setLoadingRecipes(false);
-        return;
-      }
-
-      try {
-        const res = await fetch(`/api/recipes/user/${encodeURIComponent(username)}`);
-        if (!res.ok) {
-          if (res.status === 404) {
-            setUserRecipes([]);
-            setLoadingRecipes(false);
-            return;
-          }
-          throw new Error(`HTTP error! status: ${res.status}`);
-        }
-
-        const data = await res.json();
-        setUserRecipes(data.recipes || []);
-        setLoadingRecipes(false);
-      } catch (err) {
-        console.error('Error loading user recipes:', err);
-        setUserRecipes([]);
-        setLoadingRecipes(false);
-      }
-    };
-
-    fetchUserRecipes();
-  }, []);
+  const [loading, setLoading] = useState(true);
+  const [newIngredient, setNewIngredient] = useState('');
 
   // Load cart items from backend
   useEffect(() => {
-    const load = async () => {
-      const username = getCookie('username');
-      if (username) {
-        // try load from backend
-        try {
-          const res = await fetch(`/api/cart/${encodeURIComponent(username)}`);
-          if (res.ok) {
-            const body = await res.json();
-            setItems((body.items || []).map((it) => ({ ...it })));
-            return;
-          }
-        } catch (err) {
-          // ignore and fallback to empty
-          console.warn('Cart load failed', err);
-        }
-      }
-      setItems([]);
-    };
-    load();
+    loadCart();
   }, []);
 
-  // Save cart to backend when items change
-  useEffect(() => {
+  const loadCart = async () => {
     const username = getCookie('username');
-    if (username && items.length > 0) {
-      fetch(`/api/cart/${encodeURIComponent(username)}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items }),
-      }).catch((err) => {
-        // eslint-disable-next-line no-console
-        console.warn('Failed to save cart to backend', err);
-      });
+    if (!username) {
+      setLoading(false);
+      return;
     }
-  }, [items]);
 
-  const toggleRecipe = async (id) => {
-    const isSelected = selectedIds.includes(id);
-    const next = isSelected ? selectedIds.filter((x) => x !== id) : [...selectedIds, id];
+    try {
+      const res = await fetch(`http://localhost:4000/api/cart/${encodeURIComponent(username)}`);
+      if (res.ok) {
+        const body = await res.json();
+        setItems((body.items || []).map((it) => ({ ...it })));
+      }
+    } catch (err) {
+      console.warn('Cart load failed', err);
+      toast.error('Failed to load cart');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    // Update selected IDs first
-    setSelectedIds(next);
-
-    // After computing next selection, aggregate ingredients from remaining recipes
-    const selectedRecipes = userRecipes.filter((r) => next.includes(r._id));
-    const aggregated = aggregateIngredients(selectedRecipes);
-
-    // Preserve checked state for items that still exist
-    const prevCheckedMap = new Map(items.map((it) => [it.text, !!it.checked]));
-    const merged = aggregated.map((it) => ({
-      ...it,
-      checked: prevCheckedMap.get(it.text) || false,
-    }));
-    setItems(merged);
-
-    // Persist cart to backend explicitly
+  // Save cart to backend when items change
+  const saveCart = async (updatedItems) => {
     const username = getCookie('username');
-    if (username) {
-      fetch(`/api/cart/${encodeURIComponent(username)}`, {
+    if (!username) return;
+
+    try {
+      await fetch(`http://localhost:4000/api/cart/${encodeURIComponent(username)}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items: merged }),
-      }).catch((err) => console.warn('Failed to sync cart after recipe toggle', err));
+        body: JSON.stringify({ items: updatedItems }),
+      });
+    } catch (err) {
+      console.warn('Failed to save cart to backend', err);
+      toast.error('Failed to save cart');
     }
   };
 
   const toggleItem = (text) => {
-    setItems((prev) => prev.map((it) => (it.text === text ? { ...it, checked: !it.checked } : it)));
+    const updatedItems = items.map((it) =>
+      it.text === text ? { ...it, checked: !it.checked } : it
+    );
+    setItems(updatedItems);
+    saveCart(updatedItems);
+  };
+
+  const removeItem = async (text) => {
+    const username = getCookie('username');
+    if (!username) return;
+
+    try {
+      const response = await fetch(
+        `http://localhost:4000/api/cart/${encodeURIComponent(username)}/items/${encodeURIComponent(text)}`,
+        { method: 'DELETE' }
+      );
+
+      if (response.ok) {
+        setItems(prev => prev.filter(it => it.text !== text));
+        toast.success('Item removed from cart');
+      }
+    } catch (err) {
+      console.error('Error removing item:', err);
+      toast.error('Failed to remove item');
+    }
   };
 
   const clearChecked = () => {
-    setItems((prev) => prev.filter((it) => !it.checked));
+    const updatedItems = items.filter((it) => !it.checked);
+    setItems(updatedItems);
+    saveCart(updatedItems);
+    toast.success('Removed checked items');
+  };
+
+  const addIngredient = async () => {
+    const ingredient = newIngredient.trim();
+    if (!ingredient) return;
+
+    const username = getCookie('username');
+    if (!username) {
+      toast.error('Please log in to add items');
+      return;
+    }
+
+    // Check if already exists
+    if (items.some(it => it.text === ingredient)) {
+      toast.error('Ingredient already in cart');
+      return;
+    }
+
+    const updatedItems = [...items, { text: ingredient, qty: 1, checked: false }];
+    setItems(updatedItems);
+    setNewIngredient('');
+    await saveCart(updatedItems);
+    toast.success(`Added "${ingredient}" to cart`);
   };
 
   const exportClipboard = async () => {
@@ -137,11 +114,41 @@ export default function ViewCart() {
     const txt = lines.join('\n');
     try {
       await navigator.clipboard.writeText(txt);
-      alert('Shopping list copied to clipboard');
+      toast.success('Shopping list copied to clipboard');
     } catch (err) {
-      alert('Unable to copy to clipboard');
+      toast.error('Unable to copy to clipboard');
     }
   };
+
+  const clearAll = () => {
+    setItems([]);
+    saveCart([]);
+    toast.success('Cart cleared');
+  };
+
+  if (loading) {
+    return (
+      <div className="max-w-6xl mx-auto p-6">
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading cart...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const username = getCookie('username');
+  if (!username) {
+    return (
+      <div className="max-w-6xl mx-auto p-6">
+        <div className="text-center py-12">
+          <ShoppingCart size={48} className="text-gray-400 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Sign In Required</h2>
+          <p className="text-gray-600">Please sign in to use the shopping cart feature.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto p-6">
@@ -149,70 +156,103 @@ export default function ViewCart() {
         <ShoppingCart size={28} className="text-orange-500" />
         <div>
           <h1 className="text-2xl font-bold">Shopping Cart 🛒</h1>
-          <p className="text-sm text-gray-500">Collect ingredients from the recipes you plan to make and generate a grocery checklist.</p>
+          <p className="text-sm text-gray-500">Manage your grocery list and ingredients</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Left: recipes */}
-        <div className="md:col-span-1 bg-white p-4 rounded-lg shadow-sm border">
-          <h2 className="font-semibold mb-3">Your Recipes</h2>
-          <p className="text-xs text-gray-500 mb-3">Select recipes to add their ingredients to the shopping list</p>
-          
-          {loadingRecipes ? (
-            <div className="text-gray-500">Loading recipes...</div>
-          ) : recipesError ? (
-            <div className="text-red-500 text-sm">{recipesError}</div>
-          ) : userRecipes.length === 0 ? (
-            <div className="text-center py-8">
-              <div className="text-gray-400 text-3xl mb-2">📝</div>
-              <div className="text-gray-600 text-sm">
-                You currently have no saved recipes
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-3 max-h-[60vh] overflow-auto pr-2">
-              {userRecipes.map((r) => (
-                <div key={r._id} className="flex items-start gap-3">
-                  <input 
-                    type="checkbox" 
-                    checked={selectedIds.includes(r._id)} 
-                    onChange={() => toggleRecipe(r._id)} 
-                    className="mt-2" 
-                  />
-                  <div>
-                    <div className="font-medium">{r.title}</div>
-                    <div className="text-xs text-gray-500">
-                      {r.prepTime + r.cookTime} min • {r.servings} servings
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+      <div className="grid grid-cols-1 gap-6">
+        {/* Add Ingredient Section */}
+        <div className="bg-white p-6 rounded-lg shadow-sm border">
+          <h2 className="font-semibold mb-3">Add Ingredient</h2>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={newIngredient}
+              onChange={(e) => setNewIngredient(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && addIngredient()}
+              placeholder="Enter ingredient name..."
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            />
+            <button
+              onClick={addIngredient}
+              className="px-6 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors flex items-center gap-2 font-medium"
+            >
+              <Plus size={18} />
+              Add
+            </button>
+          </div>
         </div>
 
-        {/* Middle: shopping list */}
-        <div className="md:col-span-2 bg-white p-4 rounded-lg shadow-sm border">
+        {/* Shopping List */}
+        <div className="bg-white p-6 rounded-lg shadow-sm border">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold">Your Grocery List</h2>
+            <h2 className="font-semibold">Your Grocery List ({items.length} items)</h2>
             <div className="flex items-center gap-2">
-              <button onClick={exportClipboard} className="text-sm px-3 py-1 bg-orange-500 text-white rounded flex items-center gap-2"><Clipboard size={14}/> Copy</button>
-              <button onClick={clearChecked} className="text-sm px-3 py-1 bg-red-50 text-red-600 rounded flex items-center gap-2"><Trash2 size={14}/> Remove purchased</button>
+              <button
+                onClick={exportClipboard}
+                disabled={items.length === 0}
+                className="text-sm px-3 py-1 bg-orange-500 text-white rounded flex items-center gap-2 hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Clipboard size={14} />
+                Copy
+              </button>
+              <button
+                onClick={clearChecked}
+                disabled={!items.some(it => it.checked)}
+                className="text-sm px-3 py-1 bg-red-50 text-red-600 rounded flex items-center gap-2 hover:bg-red-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Trash2 size={14} />
+                Remove Checked
+              </button>
+              <button
+                onClick={clearAll}
+                disabled={items.length === 0}
+                className="text-sm px-3 py-1 bg-gray-100 text-gray-700 rounded flex items-center gap-2 hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <X size={14} />
+                Clear All
+              </button>
             </div>
           </div>
 
           {items.length === 0 ? (
-            <div className="text-gray-500">No items yet — select recipes to build your list.</div>
+            <div className="text-center py-12">
+              <ShoppingCart size={48} className="text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-500">Your cart is empty</p>
+              <p className="text-sm text-gray-400 mt-1">Add ingredients manually or from recipe pages</p>
+            </div>
           ) : (
             <ul className="space-y-2">
               {items.map((it) => (
-                <li key={it.text} className="flex items-center justify-between p-2 rounded hover:bg-gray-50">
-                  <label className="flex items-center gap-3">
-                    <input type="checkbox" checked={!!it.checked} onChange={() => toggleItem(it.text)} />
-                    <span className={it.checked ? 'line-through text-gray-400' : ''}>{it.text}</span>
+                <li
+                  key={it.text}
+                  className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors border border-gray-100"
+                >
+                  <label className="flex items-center gap-3 flex-1 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={!!it.checked}
+                      onChange={() => toggleItem(it.text)}
+                      className="w-5 h-5 text-orange-500 border-gray-300 rounded focus:ring-orange-500 focus:ring-2 cursor-pointer"
+                    />
+                    <span className={`flex-1 ${it.checked ? 'line-through text-gray-400' : 'text-gray-700'}`}>
+                      {it.text}
+                    </span>
                   </label>
-                  <div className="text-xs text-gray-500">{it.qty > 1 ? `${it.qty}×` : ''}</div>
+                  <div className="flex items-center gap-3">
+                    {it.qty > 1 && (
+                      <span className="text-sm font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                        {it.qty}×
+                      </span>
+                    )}
+                    <button
+                      onClick={() => removeItem(it.text)}
+                      className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1.5 rounded transition-colors"
+                      title="Remove item"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>

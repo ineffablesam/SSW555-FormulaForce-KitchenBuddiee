@@ -18,6 +18,8 @@ export default function RecipeView() {
 
     const [addingToCart, setAddingToCart] = useState(false);
     const [cartMessage, setCartMessage] = useState(null);
+    const [ingredientCartStatus, setIngredientCartStatus] = useState({});
+    const [addingIngredient, setAddingIngredient] = useState({});
 
     useEffect(() => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -31,6 +33,13 @@ export default function RecipeView() {
         window.addEventListener('scroll', handleScroll);
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
+
+    // Load cart status when recipe changes
+    useEffect(() => {
+        if (recipe) {
+            loadCartStatus();
+        }
+    }, [recipe]);
 
     const fetchRecipe = async () => {
         try {
@@ -53,6 +62,96 @@ export default function RecipeView() {
         } finally {
             setLoading(false);
         }
+    };
+
+    const loadCartStatus = async () => {
+        const username = getCookie('username');
+        if (!username || !recipe) return;
+
+        try {
+            const response = await fetch(`http://localhost:4000/api/cart/${encodeURIComponent(username)}`);
+            if (response.ok) {
+                const data = await response.json();
+                const cartItems = data.items || [];
+
+                // Create a map of ingredients in cart
+                const statusMap = {};
+                recipe.ingredients?.forEach(ingredient => {
+                    const inCart = cartItems.some(item => item.text === ingredient);
+                    statusMap[ingredient] = inCart;
+                });
+                setIngredientCartStatus(statusMap);
+            }
+        } catch (err) {
+            console.error('Error loading cart status:', err);
+        }
+    };
+
+    const toggleIngredientInCart = async (ingredient) => {
+        const username = getCookie('username');
+        if (!username) {
+            setCartMessage({ type: 'error', text: 'Please log in to add items to cart' });
+            setTimeout(() => setCartMessage(null), 3000);
+            return;
+        }
+
+        const isInCart = ingredientCartStatus[ingredient];
+        setAddingIngredient(prev => ({ ...prev, [ingredient]: true }));
+
+        try {
+            if (isInCart) {
+                // Remove from cart
+                const response = await fetch(
+                    `http://localhost:4000/api/cart/${encodeURIComponent(username)}/items/${encodeURIComponent(ingredient)}`,
+                    { method: 'DELETE' }
+                );
+
+                if (!response.ok) throw new Error('Failed to remove from cart');
+
+                setIngredientCartStatus(prev => ({ ...prev, [ingredient]: false }));
+                setCartMessage({ type: 'success', text: `Removed "${ingredient}" from cart` });
+            } else {
+                // Add to cart
+                const response = await fetch(`http://localhost:4000/api/cart/${encodeURIComponent(username)}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        items: [
+                            ...(await getCurrentCartItems()),
+                            { text: ingredient, qty: 1, checked: false }
+                        ]
+                    })
+                });
+
+                if (!response.ok) throw new Error('Failed to add to cart');
+
+                setIngredientCartStatus(prev => ({ ...prev, [ingredient]: true }));
+                setCartMessage({ type: 'success', text: `Added "${ingredient}" to cart` });
+            }
+            setTimeout(() => setCartMessage(null), 3000);
+        } catch (err) {
+            console.error('Error toggling ingredient in cart:', err);
+            setCartMessage({ type: 'error', text: 'Failed to update cart' });
+            setTimeout(() => setCartMessage(null), 3000);
+        } finally {
+            setAddingIngredient(prev => ({ ...prev, [ingredient]: false }));
+        }
+    };
+
+    const getCurrentCartItems = async () => {
+        const username = getCookie('username');
+        if (!username) return [];
+
+        try {
+            const response = await fetch(`http://localhost:4000/api/cart/${encodeURIComponent(username)}`);
+            if (response.ok) {
+                const data = await response.json();
+                return data.items || [];
+            }
+        } catch (err) {
+            console.error('Error getting cart items:', err);
+        }
+        return [];
     };
 
     const fetchCategories = async () => {
@@ -80,7 +179,7 @@ export default function RecipeView() {
     };
 
     const openCategoryModal = async () => {
-        setShowCategoryModal(true); 
+        setShowCategoryModal(true);
         fetchCategories();
     };
 
@@ -93,13 +192,13 @@ export default function RecipeView() {
         const fullCategoryObjects = selectedCategories.map(catId => {
             const cat = categories.find(c => c._id === catId);
             return {
-            id: cat._id,
-            name: cat.name
+                id: cat._id,
+                name: cat.name
             };
         });
         setCategoryLoading(true);
         setCategoryError('');
-         try {
+        try {
             const response = await fetch(`http://localhost:4000/api/recipes/${id}/category`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
@@ -140,7 +239,7 @@ export default function RecipeView() {
                 return 'bg-green-50 hover:bg-green-100 text-green-500';
         }
     };
-            
+
     const addToCart = async () => {
         const username = getCookie('username');
         if (!username) {
@@ -170,9 +269,9 @@ export default function RecipeView() {
             }
 
             const data = await response.json();
-            setCartMessage({ 
-                type: 'success', 
-                text: `Added ${data.addedCount} ingredients to cart!` 
+            setCartMessage({
+                type: 'success',
+                text: `Added ${data.addedCount} ingredients to cart!`
             });
             setTimeout(() => setCartMessage(null), 3000);
         } catch (err) {
@@ -223,57 +322,57 @@ export default function RecipeView() {
         <div className="min-h-screen bg-gray-50 pb-12">
             {/* MODAL */}
             {showCategoryModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                <div className="bg-white rounded-xl p-6 w-11/12 max-w-md shadow-lg">
-                <h3 className="text-lg font-semibold mb-4">Select Categories</h3>
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                    <div className="bg-white rounded-xl p-6 w-11/12 max-w-md shadow-lg">
+                        <h3 className="text-lg font-semibold mb-4">Select Categories</h3>
 
-                <div className="mb-4 max-h-60 overflow-y-auto">
-                    {categoryLoading ? (
-                    <p>Loading categories...</p>
-                    ) : (
-                    categories.map(cat => (
-                        <label key={cat._id} className="flex items-center gap-2 mb-2 cursor-pointer">
-                        <input
-                            type="checkbox"
-                            value={cat._id}
-                            checked={selectedCategories.includes(cat._id)}
-                            onChange={(e) => {
-                            const checked = e.target.checked;
-                            setSelectedCategories(prev => {
-                                if (checked) {
-                                return [...prev, cat._id];
-                                } else {
-                                return prev.filter(id => id !== cat._id);
-                                }
-                            });
-                            }}
-                            className="w-4 h-4"
-                        />
-                        <span>{cat.name}</span>
-                        </label>
-                    ))
-                    )}
-                </div>
+                        <div className="mb-4 max-h-60 overflow-y-auto">
+                            {categoryLoading ? (
+                                <p>Loading categories...</p>
+                            ) : (
+                                categories.map(cat => (
+                                    <label key={cat._id} className="flex items-center gap-2 mb-2 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            value={cat._id}
+                                            checked={selectedCategories.includes(cat._id)}
+                                            onChange={(e) => {
+                                                const checked = e.target.checked;
+                                                setSelectedCategories(prev => {
+                                                    if (checked) {
+                                                        return [...prev, cat._id];
+                                                    } else {
+                                                        return prev.filter(id => id !== cat._id);
+                                                    }
+                                                });
+                                            }}
+                                            className="w-4 h-4"
+                                        />
+                                        <span>{cat.name}</span>
+                                    </label>
+                                ))
+                            )}
+                        </div>
 
-                {categoryError && <p className="text-red-500 mb-2">{categoryError}</p>}
+                        {categoryError && <p className="text-red-500 mb-2">{categoryError}</p>}
 
-                <div className="flex justify-end gap-3">
-                    <button
-                    onClick={() => setShowCategoryModal(false)}
-                    className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 transition"
-                    >
-                    Cancel
-                    </button>
-                    <button
-                    onClick={updateRecipeCategory}
-                    disabled={selectedCategories.length === 0 || categoryLoading}
-                    className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 transition disabled:opacity-50"
-                    >
-                    {categoryLoading ? "Adding..." : "Add"}
-                    </button>
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={() => setShowCategoryModal(false)}
+                                className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 transition"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={updateRecipeCategory}
+                                disabled={selectedCategories.length === 0 || categoryLoading}
+                                className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 transition disabled:opacity-50"
+                            >
+                                {categoryLoading ? "Adding..." : "Add"}
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                </div>
-            </div>
             )}
 
 
@@ -361,11 +460,10 @@ export default function RecipeView() {
                             </button>
                         </div>
                         {cartMessage && (
-                            <div className={`mt-4 px-4 py-3 rounded-lg ${
-                                cartMessage.type === 'success' 
-                                    ? 'bg-green-50 text-green-700 border border-green-200' 
-                                    : 'bg-red-50 text-red-700 border border-red-200'
-                            }`}>
+                            <div className={`mt-4 px-4 py-3 rounded-lg ${cartMessage.type === 'success'
+                                ? 'bg-green-50 text-green-700 border border-green-200'
+                                : 'bg-red-50 text-red-700 border border-red-200'
+                                }`}>
                                 {cartMessage.text}
                             </div>
                         )}
@@ -420,11 +518,28 @@ export default function RecipeView() {
                             <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-6">Ingredients</h2>
                             <ul className="space-y-3 md:space-y-4">
                                 {recipe.ingredients?.map((ingredient, index) => (
-                                    <li key={index} className="flex items-start gap-3 md:gap-4">
+                                    <li key={index} className="flex items-start gap-3 md:gap-4 group">
                                         <span className="flex-shrink-0 w-7 h-7 md:w-8 md:h-8 rounded-full bg-orange-500 text-white flex items-center justify-center text-sm md:text-base font-bold mt-0.5">
                                             {index + 1}
                                         </span>
-                                        <span className="text-gray-700 text-sm sm:text-base md:text-lg pt-1">{ingredient}</span>
+                                        <span className="text-gray-700 text-sm sm:text-base md:text-lg pt-1 flex-1">{ingredient}</span>
+                                        <label className="flex items-center gap-2 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={ingredientCartStatus[ingredient] || false}
+                                                onChange={() => toggleIngredientInCart(ingredient)}
+                                                disabled={addingIngredient[ingredient]}
+                                                className="w-5 h-5 text-orange-500 border-gray-300 rounded focus:ring-orange-500 focus:ring-2 cursor-pointer disabled:opacity-50"
+                                                title={ingredientCartStatus[ingredient] ? "Remove from cart" : "Add to cart"}
+                                            />
+                                            <ShoppingCart
+                                                size={18}
+                                                className={`transition-colors ${ingredientCartStatus[ingredient]
+                                                    ? 'text-orange-500'
+                                                    : 'text-gray-400 group-hover:text-orange-400'
+                                                    }`}
+                                            />
+                                        </label>
                                     </li>
                                 ))}
                             </ul>
