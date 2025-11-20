@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChefHat,
   Home,
@@ -131,8 +132,18 @@ export default function MainLayout() {
 
   return (
     <div className="min-h-screen w-full bg-gray-50 text-gray-800">
-      <header
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-white shadow-md' : 'bg-white shadow-md'
+      <motion.header
+        initial={{ y: 0, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{
+          type: "spring",
+          stiffness: 100,
+          damping: 20,
+          duration: 0.6
+        }}
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled
+          ? 'bg-white/80 backdrop-blur-xl shadow-lg border-b border-gray-200/50'
+          : 'bg-white/90 backdrop-blur-md shadow-md'
           }`}
       >
         <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -154,19 +165,36 @@ export default function MainLayout() {
             </Link>
 
             <div className="hidden md:flex items-center gap-2 lg:gap-4">
-              {navLinks.map((link) => {
+              {navLinks.map((link, index) => {
                 const Icon = link.icon;
                 const active = isActive(link.path);
                 return (
-                  <Link
+                  <motion.div
                     key={link.path}
-                    to={link.path}
-                    className={`relative flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-300 ${active ? 'text-orange-500 bg-orange-50' : 'text-gray-600 hover:text-orange-500 hover:bg-orange-50'
-                      }`}
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{
+                      delay: index * 0.05,
+                      type: "spring",
+                      stiffness: 200,
+                      damping: 20
+                    }}
                   >
-                    <Icon size={20} />
-                    <span>{link.label}</span>
-                  </Link>
+                    <Link
+                      to={link.path}
+                      className={`relative flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-300 ${active ? 'text-orange-500 bg-orange-50' : 'text-gray-600 hover:text-orange-500 hover:bg-orange-50'
+                        }`}
+                    >
+                      <motion.div
+                        whileHover={{ scale: 1.1, rotate: 5 }}
+                        whileTap={{ scale: 0.95 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                      >
+                        <Icon size={20} />
+                      </motion.div>
+                      <span>{link.label}</span>
+                    </Link>
+                  </motion.div>
                 );
               })}
               {username ? (
@@ -305,7 +333,7 @@ export default function MainLayout() {
             </div>
           </div>
         </nav>
-      </header>
+      </motion.header>
 
       <main className="pt-16 md:pt-20">
         <Outlet />

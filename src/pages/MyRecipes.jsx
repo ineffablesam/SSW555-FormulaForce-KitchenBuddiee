@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import RecipeCard from '../components/RecipeCard';
 import RecipeCardShimmer from '../components/RecipeCardShimmer';
 import { ChefHat, AlertCircle, X } from 'lucide-react';
@@ -142,10 +143,29 @@ export default function MyRecipes() {
 
     return (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div className="mb-8 flex items-center gap-3">
-                <ChefHat size={32} className="text-orange-500" />
+            <motion.div
+                className="mb-8 flex items-center gap-3"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{
+                    duration: 0.6,
+                    ease: [0.25, 0.46, 0.45, 0.94]
+                }}
+            >
+                <motion.div
+                    initial={{ scale: 0, rotate: -180 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{
+                        type: "spring",
+                        stiffness: 200,
+                        damping: 15,
+                        delay: 0.2
+                    }}
+                >
+                    <ChefHat size={32} className="text-orange-500" />
+                </motion.div>
                 <h1 className="text-3xl font-bold text-gray-900">My Recipes</h1>
-            </div>
+            </motion.div>
 
             {loading && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -180,14 +200,45 @@ export default function MyRecipes() {
 
             {!loading && !error && recipes.length > 0 && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {recipes.map((recipe) => (
-                        <RecipeCard
+                    {recipes.map((recipe, index) => (
+                        <motion.div
                             key={recipe._id || recipe.id}
-                            recipe={recipe}
-                            onDelete={handleDeleteClick}
-                            onTogglePrivacy={handlePrivacyToggle}
-                            onEdit={handleEditClick}
-                        />
+                            initial={{
+                                opacity: 0,
+                                scale: 0.9,
+                                filter: "blur(10px)"
+                            }}
+                            animate={{
+                                opacity: 1,
+                                scale: 1,
+                                filter: "blur(0px)"
+                            }}
+                            transition={{
+                                delay: index * 0.1,
+                                duration: 0.5,
+                                ease: [0.25, 0.46, 0.45, 0.94], // iOS-style easing
+                                scale: {
+                                    type: "spring",
+                                    stiffness: 200,
+                                    damping: 20
+                                }
+                            }}
+                            whileHover={{
+                                y: -8,
+                                transition: {
+                                    type: "spring",
+                                    stiffness: 400,
+                                    damping: 17
+                                }
+                            }}
+                        >
+                            <RecipeCard
+                                recipe={recipe}
+                                onDelete={handleDeleteClick}
+                                onTogglePrivacy={handlePrivacyToggle}
+                                onEdit={handleEditClick}
+                            />
+                        </motion.div>
                     ))}
                 </div>
             )}
