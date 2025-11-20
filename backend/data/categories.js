@@ -16,6 +16,23 @@ export async function createCategory(categoryData) {
     throw createHttpError(400, 'Category name must be between 3 and 25 characters.');
   }
 
+  // Validate color input
+  let finalColor = color;
+
+  // If no color provided → default to white
+  if (!finalColor) {
+    finalColor = '#FFFFFF';
+  } else {
+    // Validate hex format (#FFF or #FFFFFF)
+    const hexRegex = /^#([A-Fa-f0-9]{3}|[A-Fa-f0-9]{6})$/;
+
+    if (typeof finalColor !== 'string' || !hexRegex.test(finalColor)) {
+      throw createHttpError(400, 'Invalid color format. Must be a hex color.');
+    }
+
+    finalColor = finalColor.toUpperCase();
+  }
+
   const db = await dbConnection();
   const collection = db.collection(CATEGORIES_COLLECTION);
 
@@ -27,6 +44,7 @@ export async function createCategory(categoryData) {
 
   const result = await collection.insertOne({
     ...categoryData,
+    color: finalColor,
     image: image || null, // Store base64 image or null
     recipes: [],
     createdAt: new Date(),
@@ -40,6 +58,7 @@ export async function createCategory(categoryData) {
   return {
     id: result.insertedId,
     ...categoryData,
+    color: finalColor,
   };
 }
 
