@@ -38,9 +38,9 @@ router.get('/:username/:categoryName', async (req, res, next) => {
 // POST /api/categories (create new category)
 router.post('/', async (req, res, next) => {
   try {
-    const { username, name, description, color } = req.body;
+    const { username, name, description, color, image } = req.body;
 
-    console.log('Creating category with:', { name, description, username, color});
+    console.log('Creating category with:', { name, description, username, color, imageSize: image ? image.length : 0 });
 
     if (!name) {
       return res.status(400).json({
@@ -54,6 +54,7 @@ router.post('/', async (req, res, next) => {
       description: description?.trim() || '',
       username,
       color: color.trim(),
+      image,
     });
 
     res.status(201).json({
@@ -71,8 +72,12 @@ router.post('/', async (req, res, next) => {
 // PUT /api/categories/:id (update)
 router.put('/:id', async (req, res, next) => {
   try {
-    const { username, name, color } = req.body; 
-    const updatedCategory = await updateCategory(req.params.id, {name, color}, username);
+    const { username, name, color, image } = req.body;
+
+    console.log(`[PUT] Updating category ${req.params.id} for user ${username}`);
+    console.log(`[PUT] Payload: name=${name}, color=${color}, imageSize=${image ? image.length : 'missing/null'}`);
+
+    const updatedCategory = await updateCategory(req.params.id, { name, color, image }, username);
     if (!updatedCategory) {
       return res.status(404).json({ error: 'Category not found' });
     }

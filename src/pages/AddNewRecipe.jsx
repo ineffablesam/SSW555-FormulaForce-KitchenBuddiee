@@ -1,8 +1,14 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { ChefHat, X, AlertCircle, Check, Plus, Clock, Users, GripVertical, Trash2, ImageIcon, Save, Link2, Lock, Globe } from 'lucide-react';
 import AuthDialog, { getCookie } from '../components/AuthDialog';
-const AddNewRecipe = ({ onSubmit, onCancel }) => {
+const AddNewRecipe = ({ onSubmit, onCancel, initialRecipe = null }) => {
     const username = getCookie('username');
+    const location = useLocation();
+    const navigate = useNavigate();
+    const [isEditing, setIsEditing] = useState(false);
+    const [editId, setEditId] = useState(null);
+
     const [formData, setFormData] = useState({
         title: '',
         prepTime: '',
@@ -18,6 +24,37 @@ const AddNewRecipe = ({ onSubmit, onCancel }) => {
         imagePreview: null,
         isPrivate: false
     });
+
+    useEffect(() => {
+        const recipeToEdit = initialRecipe || location.state?.recipe;
+
+        if (recipeToEdit) {
+            setIsEditing(true);
+            setEditId(recipeToEdit._id || recipeToEdit.id);
+            setFormData({
+                title: recipeToEdit.title || '',
+                prepTime: recipeToEdit.prepTime || '',
+                cookTime: recipeToEdit.cookTime || '',
+                servings: recipeToEdit.servings || '',
+                difficulty: recipeToEdit.difficulty || 'medium',
+                category: recipeToEdit.category || [],
+                description: recipeToEdit.description || '',
+                externalLink: recipeToEdit.externalLink || '',
+                ingredients: recipeToEdit.ingredients && recipeToEdit.ingredients.length > 0
+                    ? recipeToEdit.ingredients.map((text, index) => ({ id: Date.now() + index, text }))
+                    : [{ id: Date.now(), text: '' }],
+                steps: recipeToEdit.steps && recipeToEdit.steps.length > 0
+                    ? recipeToEdit.steps.map((text, index) => ({ id: Date.now() + index + 100, text }))
+                    : [{ id: Date.now() + 1, text: '' }],
+                image: recipeToEdit.image || null,
+                imagePreview: recipeToEdit.image || null,
+                isPrivate: recipeToEdit.isPrivate || false
+            });
+            // Clear state so refresh doesn't keep editing if navigated away and back
+            // actually better to keep it so refresh works? No, refresh clears location state usually.
+            // But we want to clear it if they navigate away.
+        }
+    }, [location.state, initialRecipe]);
 
     const handleImageToBase64 = (file) => {
         return new Promise((resolve, reject) => {
@@ -114,8 +151,14 @@ const AddNewRecipe = ({ onSubmit, onCancel }) => {
                 isPrivate: formData.isPrivate
             };
 
-            const res = await fetch('http://localhost:4000/api/recipes', {
-                method: 'POST',
+            const url = isEditing
+                ? `http://localhost:4000/api/recipes/${editId}`
+                : 'http://localhost:4000/api/recipes';
+
+            const method = isEditing ? 'PUT' : 'POST';
+
+            const res = await fetch(url, {
+                method: method,
                 headers: {
                     'Content-Type': 'application/json',
                 },
@@ -129,7 +172,11 @@ const AddNewRecipe = ({ onSubmit, onCancel }) => {
 
             setShowSuccess(true);
             setTimeout(() => {
-                window.location.href = '/';
+                if (onSubmit) {
+                    onSubmit();
+                } else {
+                    navigate('/');
+                }
             }, 1500);
         } catch (error) {
             console.error('Error preparing recipe:', error);
@@ -252,7 +299,9 @@ const AddNewRecipe = ({ onSubmit, onCancel }) => {
                     <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
                         <Check className="w-12 h-12 text-green-600" />
                     </div>
-                    <h2 className="text-3xl font-bold text-gray-900 mb-3">Recipe Added Successfully!</h2>
+                    <h2 className="text-3xl font-bold text-gray-900 mb-3">
+                        {isEditing ? 'Recipe Updated Successfully!' : 'Recipe Added Successfully!'}
+                    </h2>
                     <p className="text-gray-600 text-lg">Redirecting to your recipes...</p>
                 </div>
             </div>
@@ -271,8 +320,12 @@ const AddNewRecipe = ({ onSubmit, onCancel }) => {
                                     <ChefHat className="w-8 h-8 text-white" />
                                 </div>
                                 <div>
-                                    <h2 className="text-3xl font-bold text-white">Add New Recipe</h2>
-                                    <p className="text-orange-100 mt-1">Share your delicious creation with the world</p>
+                                    <h2 className="text-3xl font-bold text-white">
+                                        {isEditing ? 'Edit Recipe' : 'Add New Recipe'}
+                                    </h2>
+                                    <p className="text-orange-100 mt-1">
+                                        {isEditing ? 'Update your delicious creation' : 'Share your delicious creation with the world'}
+                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -657,7 +710,7 @@ const AddNewRecipe = ({ onSubmit, onCancel }) => {
                                 className="flex-1 sm:flex-none bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-700 hover:to-orange-600 text-white px-8 py-4 font-bold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 flex items-center justify-center gap-3"
                             >
                                 <Save className="w-6 h-6" />
-                                Save Recipe
+                                {isEditing ? 'Update Recipe' : 'Save Recipe'}
                             </button>
                             <button
                                 type="button"

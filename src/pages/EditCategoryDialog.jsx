@@ -4,12 +4,25 @@ import { useParams } from 'react-router-dom';
 
 
 export default function EditCategoryDialog({ category, onClose, onSuccess }) {
-    const [name, setName] = useState(category.name);
-    const [color, setColor] = useState(category.color || '#FFFFFF');
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
-    const { username } = useParams(); 
+  const [name, setName] = useState(category.name);
+  const [color, setColor] = useState(category.color || '#FFFFFF');
+  const [image, setImage] = useState(category.image || null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const { username } = useParams();
 
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      console.log('File selected:', file.name, file.size);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        console.log('File read result (start):', reader.result?.substring(0, 50));
+        setImage(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -17,20 +30,27 @@ export default function EditCategoryDialog({ category, onClose, onSuccess }) {
     setError('');
 
     try {
+      console.log('Updating category with:', {
+        name,
+        color,
+        username,
+        imageSize: image ? image.length : 0
+      });
+
       const res = await fetch(`http://localhost:4000/api/categories/${category._id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, color, username}),
+        body: JSON.stringify({ name, color, image, username }),
       });
 
-    if (!res.ok) {
+      if (!res.ok) {
         let errorMsg = 'Failed to update category';
         try {
-            const data = await res.json();
-            if (data?.message) errorMsg = data.message;
-        } catch {}
+          const data = await res.json();
+          if (data?.message) errorMsg = data.message;
+        } catch { }
         throw new Error(errorMsg);
-        }
+      }
 
       const data = await res.json();
 
@@ -79,6 +99,19 @@ export default function EditCategoryDialog({ category, onClose, onSuccess }) {
               onChange={(e) => setColor(e.target.value)}
               className="w-16 h-10 p-0 border rounded"
             />
+          </label>
+
+          <label className="flex flex-col">
+            Image
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+              className="text-sm text-gray-500 mt-1"
+            />
+            {image && (
+              <img src={image} alt="Preview" className="mt-2 w-16 h-16 object-cover rounded-full border border-gray-300" />
+            )}
           </label>
 
           {error && <p className="text-red-600 text-sm">{error}</p>}

@@ -6,8 +6,21 @@ export default function AddNewCategory({ onCancel, onSuccess }) {
     const { username } = useParams(); // get username from URL
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
-    const [color, setColor] = useState('#FFFFFF'); 
+    const [color, setColor] = useState('#FFFFFF');
+    const [image, setImage] = useState(null);
 
+    const handleImageChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            console.log('File selected:', file.name, file.size);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                console.log('File read result (start):', reader.result?.substring(0, 50));
+                setImage(reader.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -23,6 +36,7 @@ export default function AddNewCategory({ onCancel, onSuccess }) {
                 description,
                 username,
                 color,
+                imageSize: image ? image.length : 0
             });
 
             const res = await fetch('http://localhost:4000/api/categories', {
@@ -31,8 +45,9 @@ export default function AddNewCategory({ onCancel, onSuccess }) {
                 body: JSON.stringify({
                     name: name.trim(),
                     description: description.trim(),
-                    username, 
-                    color: color || '#FFFFFF', 
+                    username,
+                    color: color || '#FFFFFF',
+                    image,
                 }),
             });
 
@@ -42,7 +57,6 @@ export default function AddNewCategory({ onCancel, onSuccess }) {
             if (!res.ok) throw new Error(data.error || 'Failed to create category');
 
             if (onSuccess) onSuccess();
-            onSuccess(); // refresh categories list
         } catch (err) {
             console.error(err);
             alert(err.message);
@@ -73,13 +87,31 @@ export default function AddNewCategory({ onCancel, onSuccess }) {
                 </div>
 
                 <div>
-                <label className="block text-gray-700 mb-1">Color</label>
-                <input
-                    type="color"
-                    value={color}
-                    onChange={(e) => setColor(e.target.value)}
-                    className="w-16 h-10 p-0 border rounded"
-                />
+                    <label className="block text-gray-700 mb-1">Color</label>
+                    <input
+                        type="color"
+                        value={color}
+                        onChange={(e) => setColor(e.target.value)}
+                        className="w-16 h-10 p-0 border rounded"
+                    />
+                </div>
+
+                <div>
+                    <label className="block text-gray-700 mb-1">Category Image</label>
+                    <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageChange}
+                        className="w-full text-sm text-gray-500
+                        file:mr-4 file:py-2 file:px-4
+                        file:rounded-full file:border-0
+                        file:text-sm file:font-semibold
+                        file:bg-orange-50 file:text-orange-700
+                        hover:file:bg-orange-100"
+                    />
+                    {image && (
+                        <img src={image} alt="Preview" className="mt-2 w-20 h-20 object-cover rounded-full border-2 border-orange-200" />
+                    )}
                 </div>
 
                 <div className="flex justify-end gap-2">
