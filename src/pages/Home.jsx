@@ -56,7 +56,8 @@ export default function Home() {
         const timeoutId = setTimeout(async () => {
             try {
                 const response = await fetch(`http://localhost:4000/api/recipes?ingredients=${encodeURIComponent(terms.join(','))}`, {
-                    signal: controller.signal
+                    signal: controller.signal,
+                    credentials: 'include'
                 });
                 if (!response.ok) {
                     throw new Error('Failed to search recipes by ingredient');
@@ -109,7 +110,7 @@ export default function Home() {
             setLoading(true);
             setError(null);
 
-            const response = await fetch('http://localhost:4000/api/recipes');
+            const response = await fetch('http://localhost:4000/api/recipes', { credentials: 'include' });
 
             if (!response.ok) {
                 throw new Error('Failed to fetch recipes');

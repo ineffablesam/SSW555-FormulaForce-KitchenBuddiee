@@ -11,6 +11,7 @@ export default function MyRecipes() {
     const [showAuth, setShowAuth] = useState(false);
     const [deleteConfirm, setDeleteConfirm] = useState(null);
     const [deleting, setDeleting] = useState(false);
+    const [togglingPrivacy, setTogglingPrivacy] = useState(null);
     const username = getCookie('username');
 
     useEffect(() => {
@@ -67,6 +68,39 @@ export default function MyRecipes() {
             alert(`Error deleting recipe: ${err.message}`);
         } finally {
             setDeleting(false);
+        }
+    };
+
+    const handlePrivacyToggle = async (recipe) => {
+        if (togglingPrivacy) return;
+
+        try {
+            setTogglingPrivacy(recipe._id || recipe.id);
+            const recipeId = recipe._id || recipe.id;
+            const newPrivacyStatus = !recipe.isPrivate;
+
+            const response = await fetch(`http://localhost:4000/api/recipes/${recipeId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify({ isPrivate: newPrivacyStatus })
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                throw new Error(data.message || 'Failed to update privacy settings');
+            }
+
+            // Force a full refresh to ensure UI updates
+            await fetchMyRecipes(true);
+
+        } catch (err) {
+            alert(`Error updating privacy: ${err.message}`);
+            await fetchMyRecipes(true);
+        } finally {
+            setTogglingPrivacy(null);
         }
     };
 
@@ -128,6 +162,7 @@ export default function MyRecipes() {
                             key={recipe._id || recipe.id}
                             recipe={recipe}
                             onDelete={handleDeleteClick}
+                            onTogglePrivacy={handlePrivacyToggle}
                         />
                     ))}
                 </div>
