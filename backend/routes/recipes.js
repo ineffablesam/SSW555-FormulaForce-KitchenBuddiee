@@ -11,6 +11,7 @@ const router = express.Router();
 router.get('/', async (req, res, next) => {
     try {
         const { username, category, ingredients } = req.query;
+        const requestingUser = req.cookies?.username;
         const filter = {};
         if (username) filter.username = username;
         if (category) filter.category = category;
@@ -22,7 +23,7 @@ router.get('/', async (req, res, next) => {
         }
 
         console.log('📚 Fetching all recipes');
-        const recipes = await getAllRecipes(filter);
+        const recipes = await getAllRecipes(filter, requestingUser);
         console.log(`✅ Found ${recipes.length} recipes`);
         res.json({
             success: true,
@@ -41,7 +42,7 @@ router.post('/', async (req, res, next) => {
         console.log('Body keys:', Object.keys(req.body));
         console.log('Title:', req.body.title);
 
-        const { title, prepTime, cookTime, servings, difficulty, category, description, externalLink, ingredients, steps, image, username } = req.body;
+        const { title, prepTime, cookTime, servings, difficulty, category, description, externalLink, ingredients, steps, image, username, isPrivate } = req.body;
 
         // Validation
         if (!title || !prepTime || !cookTime || !servings) {
@@ -99,7 +100,11 @@ router.post('/', async (req, res, next) => {
             ingredients: ingredients.filter(i => i && i.trim()),
             steps: steps.filter(s => s && s.trim()),
             image: image || null,
-            username: username || 'anonymous'
+            ingredients: ingredients.filter(i => i && i.trim()),
+            steps: steps.filter(s => s && s.trim()),
+            image: image || null,
+            username: username || 'anonymous',
+            isPrivate: !!isPrivate
         };
 
         console.log('✨ Creating recipe with data:', {
@@ -182,12 +187,12 @@ router.patch('/:id/category', async (req, res, next) => {
         for (const cat of category) {
             if (!/^[0-9a-fA-F]{24}$/.test(cat.id)) {
                 return res.status(400).json({
-                error: 'Invalid category ID format',
-                message: `Invalid ID: ${cat.id}`
+                    error: 'Invalid category ID format',
+                    message: `Invalid ID: ${cat.id}`
                 });
             }
         }
-     
+
         const db = await dbConnection();
         const categoryCollection = db.collection("categories");
         const recipeCollection = db.collection("recipes");

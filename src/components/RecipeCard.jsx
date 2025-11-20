@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom';
-import { Clock, Users, ChefHat, Heart, Trash2 } from 'lucide-react';
+import { Clock, Users, ChefHat, Heart, Trash2, Lock, Globe } from 'lucide-react';
 
-export const RecipeCard = ({ recipe, onDelete = null }) => {
+export const RecipeCard = ({ recipe, onDelete = null, onTogglePrivacy = null }) => {
   const [isFavorite, setIsFavorite] = useState(false);
   const navigate = useNavigate();
   const recipeId = recipe._id || recipe.id;
@@ -26,10 +26,12 @@ export const RecipeCard = ({ recipe, onDelete = null }) => {
           console.error("Failed to load recipe:", err);
         }
       })();
+    } else {
+      setFullRecipe(recipe);
     }
-  }, [recipeId, isPartial]);
+  }, [recipeId, isPartial, recipe]);
 
-    if (!fullRecipe) {
+  if (!fullRecipe) {
     return (
       <div className="p-6 bg-gray-100 rounded-xl shadow animate-pulse">
         <div className="h-48 bg-gray-300 mb-4 rounded-lg" />
@@ -69,6 +71,18 @@ export const RecipeCard = ({ recipe, onDelete = null }) => {
               title="Delete recipe"
             >
               <Trash2 size={18} />
+            </button>
+          )}
+          {typeof onTogglePrivacy === 'function' && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onTogglePrivacy(recipe);
+              }}
+              className={`rounded-full p-2 shadow-lg transition-transform hover:scale-110 pointer-events-auto ${recipe.isPrivate ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-green-500 text-white hover:bg-green-600'}`}
+              title={recipe.isPrivate ? "Set Recipe to Public" : "Set Recipe to Private"}
+            >
+              {recipe.isPrivate ? <Lock size={18} /> : <Globe size={18} />}
             </button>
           )}
           <button
@@ -124,10 +138,15 @@ export const RecipeCard = ({ recipe, onDelete = null }) => {
 
         {/* Username */}
         {recipe.username && (
-          <div className="mt-3 pt-3 border-t border-gray-100">
+          <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
             <p className="text-xs text-gray-500">
               by <span className="font-semibold text-gray-700">{recipe.username}</span>
             </p>
+            {recipe.isPrivate && (
+              <span className="flex items-center gap-1 text-xs font-bold text-red-500 bg-red-50 px-2 py-1 rounded-full">
+                <Lock size={12} /> Private
+              </span>
+            )}
           </div>
         )}
       </div>

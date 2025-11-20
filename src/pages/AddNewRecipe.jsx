@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChefHat, X, AlertCircle, Check, Plus, Clock, Users, GripVertical, Trash2, ImageIcon, Save, Link2 } from 'lucide-react';
+import { ChefHat, X, AlertCircle, Check, Plus, Clock, Users, GripVertical, Trash2, ImageIcon, Save, Link2, Lock, Globe } from 'lucide-react';
 import AuthDialog, { getCookie } from '../components/AuthDialog';
 const AddNewRecipe = ({ onSubmit, onCancel }) => {
     const username = getCookie('username');
@@ -15,7 +15,8 @@ const AddNewRecipe = ({ onSubmit, onCancel }) => {
         ingredients: [{ id: Date.now(), text: '' }],
         steps: [{ id: Date.now() + 1, text: '' }],
         image: null,
-        imagePreview: null
+        imagePreview: null,
+        isPrivate: false
     });
 
     const handleImageToBase64 = (file) => {
@@ -109,7 +110,8 @@ const AddNewRecipe = ({ onSubmit, onCancel }) => {
                 ingredients: validIngredients,
                 steps: validSteps,
                 image: formData.image || null,
-                username: username || 'anonymous'
+                username: username || 'anonymous',
+                isPrivate: formData.isPrivate
             };
 
             const res = await fetch('http://localhost:4000/api/recipes', {
@@ -483,6 +485,39 @@ const AddNewRecipe = ({ onSubmit, onCancel }) => {
                                         </div>
                                     </div>
                                 </div>
+
+
+                                {/* Privacy Settings */}
+                                <div className="mt-8 pt-6 border-t border-gray-100">
+                                    <div className="flex items-center justify-between bg-gray-50 p-4 rounded-lg border border-gray-200">
+                                        <div className="flex items-center gap-3">
+                                            <div className={`p-2 rounded-full ${formData.isPrivate ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
+                                                {formData.isPrivate ? <Lock className="w-6 h-6" /> : <Globe className="w-6 h-6" />}
+                                            </div>
+                                            <div>
+                                                <h4 className="text-lg font-semibold text-gray-900">
+                                                    {formData.isPrivate ? 'Private Recipe' : 'Public Recipe'}
+                                                </h4>
+                                                <p className="text-sm text-gray-500">
+                                                    {formData.isPrivate
+                                                        ? 'Only you can see this recipe. It will not appear in search results.'
+                                                        : 'Everyone can see this recipe and find it in search results.'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setFormData({ ...formData, isPrivate: !formData.isPrivate })}
+                                            className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 ${formData.isPrivate ? 'bg-red-500' : 'bg-gray-300'
+                                                }`}
+                                        >
+                                            <span
+                                                className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${formData.isPrivate ? 'translate-x-7' : 'translate-x-1'
+                                                    }`}
+                                            />
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
 
                             {/* Ingredients with Drag & Drop */}
@@ -612,7 +647,6 @@ const AddNewRecipe = ({ onSubmit, onCancel }) => {
                             </div>
 
                         </div>
-
                     </div>
 
                     {/* Submit Buttons - Sticky Footer */}
@@ -634,10 +668,10 @@ const AddNewRecipe = ({ onSubmit, onCancel }) => {
                             </button>
                         </div>
                     </div>
-                </form>
+                </form >
 
-            </div>
-        </div>
+            </div >
+        </div >
     );
 };
 

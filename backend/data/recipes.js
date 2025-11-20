@@ -13,6 +13,7 @@ export async function createRecipe(recipeData) {
 
     const result = await collection.insertOne({
         ...recipeData,
+        isPrivate: !!recipeData.isPrivate,
         createdAt: new Date(),
         updatedAt: new Date()
     });
@@ -30,7 +31,7 @@ export async function createRecipe(recipeData) {
 }
 
 // NEW: Get all recipes
-export async function getAllRecipes(filter = {}) {
+export async function getAllRecipes(filter = {}, requestingUser = null) {
     const db = await dbConnection();
     const collection = db.collection(RECIPES_COLLECTION);
     const query = {};
@@ -50,13 +51,27 @@ export async function getAllRecipes(filter = {}) {
         andConditions.push(...ingredientAnds);
     }
 
+    // Privacy filter - this should be added to the $and conditions
+    if (requestingUser) {
+        andConditions.push({
+            $or: [
+                { isPrivate: { $ne: true } },           // Public recipes
+                {
+                    isPrivate: true,
+                    username: requestingUser            // Private recipes owned by user
+                }
+            ]
+        });
+    } else {
+        andConditions.push({ isPrivate: { $ne: true } });  // Only public recipes
+    }
+
     if (andConditions.length) {
         query.$and = andConditions;
     }
 
     return await collection.find(query).sort({ createdAt: -1 }).toArray();
 }
-
 export async function getRecipesByUser(username) {
     const db = await dbConnection();
     const collection = db.collection(RECIPES_COLLECTION);
