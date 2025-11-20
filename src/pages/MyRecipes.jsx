@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import RecipeCard from '../components/RecipeCard';
 import RecipeCardShimmer from '../components/RecipeCardShimmer';
 import { ChefHat, AlertCircle, X } from 'lucide-react';
 import AuthDialog, { getCookie } from '../components/AuthDialog';
+import AddNewRecipe from './AddNewRecipe';
 
 export default function MyRecipes() {
     const [recipes, setRecipes] = useState([]);
@@ -12,7 +14,9 @@ export default function MyRecipes() {
     const [deleteConfirm, setDeleteConfirm] = useState(null);
     const [deleting, setDeleting] = useState(false);
     const [togglingPrivacy, setTogglingPrivacy] = useState(null);
+    const [editingRecipe, setEditingRecipe] = useState(null);
     const username = getCookie('username');
+    const navigate = useNavigate();
 
     useEffect(() => {
         if (!username) {
@@ -38,6 +42,15 @@ export default function MyRecipes() {
 
     const handleDeleteClick = (recipe) => {
         setDeleteConfirm(recipe);
+    };
+
+    const handleEditClick = (recipe) => {
+        setEditingRecipe(recipe);
+    };
+
+    const handleEditComplete = () => {
+        setEditingRecipe(null);
+        fetchMyRecipes();
     };
 
     const handleDeleteConfirm = async () => {
@@ -117,6 +130,16 @@ export default function MyRecipes() {
         );
     }
 
+    if (editingRecipe) {
+        return (
+            <AddNewRecipe
+                initialRecipe={editingRecipe}
+                onCancel={() => setEditingRecipe(null)}
+                onSubmit={handleEditComplete}
+            />
+        );
+    }
+
     return (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="mb-8 flex items-center gap-3">
@@ -163,6 +186,7 @@ export default function MyRecipes() {
                             recipe={recipe}
                             onDelete={handleDeleteClick}
                             onTogglePrivacy={handlePrivacyToggle}
+                            onEdit={handleEditClick}
                         />
                     ))}
                 </div>

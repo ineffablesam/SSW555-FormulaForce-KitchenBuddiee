@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom';
-import { Clock, Users, ChefHat, Heart, Trash2, Lock, Globe } from 'lucide-react';
+import { Clock, Users, ChefHat, Heart, Trash2, Lock, Globe, Pencil } from 'lucide-react';
 
-export const RecipeCard = ({ recipe, onDelete = null, onTogglePrivacy = null }) => {
+export const RecipeCard = ({ recipe, onDelete = null, onTogglePrivacy = null, onEdit = null }) => {
   const [isFavorite, setIsFavorite] = useState(false);
   const navigate = useNavigate();
   const recipeId = recipe._id || recipe.id;
@@ -61,42 +61,58 @@ export const RecipeCard = ({ recipe, onDelete = null, onTogglePrivacy = null }) 
           </div>
         )}
         <div className="absolute top-3 inset-x-3 flex justify-between items-center gap-2 pointer-events-none">
-          {typeof onDelete === 'function' && (
+          <div className="flex gap-2">
+            {typeof onDelete === 'function' && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(recipe);
+                }}
+                className="bg-red-500 hover:bg-red-600 text-white rounded-full p-2 shadow-lg transition-transform hover:scale-110 pointer-events-auto"
+                title="Delete recipe"
+              >
+                <Trash2 size={18} />
+              </button>
+            )}
+            {typeof onEdit === 'function' && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(recipe);
+                }}
+                className="bg-blue-500 hover:bg-blue-600 text-white rounded-full p-2 shadow-lg transition-transform hover:scale-110 pointer-events-auto"
+                title="Edit recipe"
+              >
+                <Pencil size={18} />
+              </button>
+            )}
+          </div>
+          <div className="flex gap-2">
+            {typeof onTogglePrivacy === 'function' && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onTogglePrivacy(recipe);
+                }}
+                className={`rounded-full p-2 shadow-lg transition-transform hover:scale-110 pointer-events-auto ${recipe.isPrivate ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-green-500 text-white hover:bg-green-600'}`}
+                title={recipe.isPrivate ? "Set Recipe to Public" : "Set Recipe to Private"}
+              >
+                {recipe.isPrivate ? <Lock size={18} /> : <Globe size={18} />}
+              </button>
+            )}
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                onDelete(recipe);
+                setIsFavorite(!isFavorite);
               }}
-              className="bg-red-500 hover:bg-red-600 text-white rounded-full p-2 shadow-lg transition-transform hover:scale-110 pointer-events-auto"
-              title="Delete recipe"
+              className="bg-white rounded-full p-2 shadow-lg hover:scale-110 transition-transform pointer-events-auto"
             >
-              <Trash2 size={18} />
+              <Heart
+                size={20}
+                className={isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-600'}
+              />
             </button>
-          )}
-          {typeof onTogglePrivacy === 'function' && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onTogglePrivacy(recipe);
-              }}
-              className={`rounded-full p-2 shadow-lg transition-transform hover:scale-110 pointer-events-auto ${recipe.isPrivate ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-green-500 text-white hover:bg-green-600'}`}
-              title={recipe.isPrivate ? "Set Recipe to Public" : "Set Recipe to Private"}
-            >
-              {recipe.isPrivate ? <Lock size={18} /> : <Globe size={18} />}
-            </button>
-          )}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsFavorite(!isFavorite);
-            }}
-            className="bg-white rounded-full p-2 shadow-lg hover:scale-110 transition-transform pointer-events-auto ml-auto"
-          >
-            <Heart
-              size={20}
-              className={isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-600'}
-            />
-          </button>
+          </div>
         </div>
 
         {/* Category Badge */}

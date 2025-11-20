@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Edit, FolderPlus, Folder, AlertCircle } from 'lucide-react';
 import AddNewCategory from './AddNewCategory';
 import { useParams } from 'react-router-dom';
-import { Link } from 'react-router-dom'; 
+import { Link } from 'react-router-dom';
 import EditCategoryDialog from './EditCategoryDialog';
 
 
 export default function Categories() {
-    const { username: paramUsername, categoryName } = useParams(); 
+    const { username: paramUsername, categoryName } = useParams();
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -18,20 +18,20 @@ export default function Categories() {
     const username = paramUsername;
 
     useEffect(() => {
-      console.log('Username:', username);
-      console.log('Category Name:', categoryName);
+        console.log('Username:', username);
+        console.log('Category Name:', categoryName);
     }, [username, categoryName]);
 
     useEffect(() => {
-      if (!username) return;
-    
-      if (categoryName) {
-        // Fetch a single category
-        fetchCategory(username, categoryName);
-      } else {
-        // Fetch all categories for this user
-        fetchCategories(username);
-      }
+        if (!username) return;
+
+        if (categoryName) {
+            // Fetch a single category
+            fetchCategory(username, categoryName);
+        } else {
+            // Fetch all categories for this user
+            fetchCategories(username);
+        }
     }, [username, categoryName]);
 
     const fetchCategories = async () => {
@@ -97,7 +97,7 @@ export default function Categories() {
             />
         );
     }
-    
+
     return (
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="flex items-center justify-between mb-8">
@@ -149,56 +149,70 @@ export default function Categories() {
 
             {/* Category List */}
             {!loading && !error && categories.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {categories.map((category) => (
-                      <div
-                        key={category._id || category.name}
-                        className="relative bg-white border-2 border-orange-100 p-6 rounded-lg shadow hover:shadow-md transition group"
-                        style={{ backgroundColor: category.color || '#FFFFFF', borderColor: '#FFA500' }}
-                    >
-                        {/* Pencil icon (edit) */}
-                        <button
-                            onClick={() => setEditCategory(category)}
-                            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-gray-600 hover:text-orange-500"
+                        <div
+                            key={category._id || category.name}
+                            className="relative bg-white border-2 border-orange-100 p-6 rounded-lg shadow hover:shadow-md transition group flex flex-col items-center text-center"
+                            style={{ backgroundColor: category.color || '#FFFFFF', borderColor: '#FFA500' }}
                         >
-                            <Edit size={18} />
-                        </button>
+                            {/* Pencil icon (edit) */}
+                            <button
+                                onClick={() => setEditCategory(category)}
+                                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-gray-600 hover:text-orange-500 bg-white/50 rounded-full p-1"
+                            >
+                                <Edit size={18} />
+                            </button>
 
-                        {/* Category name link */}
-                        <Link
-                            to={`/categories/${username}/${category.name}`}
-                            className="block"
-                        >
-                            <h2 className="text-lg font-semibold text-gray-800">
-                                {category.name}
-                            </h2>
-                        </Link>
-                  </div>
-                ))}
-              </div>
+                            {/* Category Image */}
+                            {category.image ? (
+                                <img
+                                    src={category.image}
+                                    alt={category.name}
+                                    className="w-24 h-24 rounded-full object-cover mb-4 border-4 border-white shadow-sm"
+                                />
+                            ) : (
+                                <div className="w-24 h-24 rounded-full bg-orange-100 flex items-center justify-center mb-4 border-4 border-white shadow-sm">
+                                    <Folder className="w-10 h-10 text-orange-400" />
+                                </div>
+                            )}
+
+                            {/* Category name link */}
+                            <Link
+                                to={`/categories/${username}/${category.name}`}
+                                className="block"
+                            >
+                                <h2 className="text-lg font-semibold text-gray-800 hover:text-orange-700 transition-colors">
+                                    {category.name}
+                                </h2>
+                            </Link>
+                        </div>
+                    ))}
+                </div>
             )}
 
             {editCategory && (
-              <EditCategoryDialog
-                category={editCategory}
-                onClose={() => setEditCategory(null)}
-                onSuccess={async (updatedCategory) => {
-                  try {
-                    const res = await fetch(`http://localhost:4000/api/categories/${updatedCategory._id}`, {
-                      method: 'PUT',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify(updatedCategory),
-                    });
-                    if (!res.ok) throw new Error('Failed to update category');
-                    setEditCategory(null);
-                    fetchCategories(username); // refresh list
-                  } catch (err) {
-                    console.error(err);
-                    alert(err.message || 'Failed to update category');
-                  }
-                }}
-              />
+                <EditCategoryDialog
+                    category={editCategory}
+                    onClose={() => setEditCategory(null)}
+                    onSuccess={async (updatedCategory) => {
+                        try {
+                            const res = await fetch(`http://localhost:4000/api/categories/${updatedCategory._id}`, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(updatedCategory),
+                            });
+                            if (!res.ok) throw new Error('Failed to update category');
+                            setEditCategory(null);
+                            fetchCategories(username); // refresh list
+                        } catch (err) {
+                            console.error(err);
+                            alert(err.message || 'Failed to update category');
+                        }
+                    }}
+                />
             )}
 
-      </div>
-  )}
+        </div>
+    )
+}

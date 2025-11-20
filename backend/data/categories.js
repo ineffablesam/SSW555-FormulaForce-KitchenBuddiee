@@ -5,41 +5,42 @@ import { dbConnection } from '../config/mongoConnection.js';
 const CATEGORIES_COLLECTION = 'categories';
 
 export async function createCategory(categoryData) {
-    const { name, description, username, color } = categoryData;
-    if (!name || typeof name !== 'string') {
-        throw createHttpError(400, 'Category name is required.');
-    }
+  const { name, description, username, color, image } = categoryData;
+  if (!name || typeof name !== 'string') {
+    throw createHttpError(400, 'Category name is required.');
+  }
 
-    // Trim and validate length
-    const trimmedName = name.trim();
-    if (trimmedName.length < 3 || trimmedName.length > 25) {
-        throw createHttpError(400, 'Category name must be between 3 and 25 characters.');
-    }
+  // Trim and validate length
+  const trimmedName = name.trim();
+  if (trimmedName.length < 3 || trimmedName.length > 25) {
+    throw createHttpError(400, 'Category name must be between 3 and 25 characters.');
+  }
 
-    const db = await dbConnection();
-    const collection = db.collection(CATEGORIES_COLLECTION);
+  const db = await dbConnection();
+  const collection = db.collection(CATEGORIES_COLLECTION);
 
-    // Check for duplicate name for this user
-    const existing = await collection.findOne({ username, name: trimmedName });
-    if (existing) {
-        throw createHttpError(400, 'Category name already exists for this user.');
-    }
-    
-    const result = await collection.insertOne({
-        ...categoryData,
-        recipes: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-    });
+  // Check for duplicate name for this user
+  const existing = await collection.findOne({ username, name: trimmedName });
+  if (existing) {
+    throw createHttpError(400, 'Category name already exists for this user.');
+  }
 
-    if (!result.acknowledged) {
-        throw createHttpError(500, 'Failed to create category');
-    }
+  const result = await collection.insertOne({
+    ...categoryData,
+    image: image || null, // Store base64 image or null
+    recipes: [],
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
 
-    return {
-        id: result.insertedId,
-        ...categoryData,
-    };
+  if (!result.acknowledged) {
+    throw createHttpError(500, 'Failed to create category');
+  }
+
+  return {
+    id: result.insertedId,
+    ...categoryData,
+  };
 }
 
 export async function getAllCategories(username) {
@@ -73,7 +74,7 @@ export async function updateCategory(id, updates, username) {
   if (name && (name.length < 3 || name.length > 25)) {
     throw createHttpError(400, 'Category name must be between 3 and 25 characters.');
   }
-  
+
   const db = await dbConnection();
   const collection = db.collection(CATEGORIES_COLLECTION);
 
@@ -83,18 +84,22 @@ export async function updateCategory(id, updates, username) {
   } catch {
     throw createHttpError(400, 'Invalid category ID format');
   }
-  
+
   // Check for duplicate name if name is being updated
   if (updates.name) {
-    const existing = await collection.findOne({ 
-      username, 
-      name: updates.name, 
+    const existing = await collection.findOne({
+      username,
+      name: updates.name,
       _id: { $ne: objectId } // exclude current category
     });
     if (existing) {
       throw createHttpError(400, 'Category name already exists for this user.');
     }
   }
+
+  console.log(`[DB] Updating category ${id} with fields:`, Object.keys(updates));
+  if (updates.image) console.log(`[DB] Image size: ${updates.image.length}`);
+
   const result = await collection.findOneAndUpdate(
     { _id: objectId, username },
     { $set: { ...updates, updatedAt: new Date() } },

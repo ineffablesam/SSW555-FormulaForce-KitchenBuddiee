@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import RecipeCard from '../components/RecipeCard';
-import { ChefHat, Loader2, AlertCircle, Search, X } from 'lucide-react';
+import { ChefHat, Loader2, AlertCircle, Search, X, Folder } from 'lucide-react';
 import AddNewRecipe from './AddNewRecipe';
 import FloatingAddRecipeButton from '../components/FloatingAddRecipeButton';
 import RecipeCardShimmer from '../components/RecipeCardShimmer';
@@ -19,12 +19,29 @@ export default function Home() {
     const [ingredientResults, setIngredientResults] = useState([]);
     const [searchingIngredients, setSearchingIngredients] = useState(false);
     const [ingredientError, setIngredientError] = useState(null);
+    const [categories, setCategories] = useState([]);
+    const [selectedCategory, setSelectedCategory] = useState(null);
     const username = getCookie('username');
 
-    // Fetch all recipes on component mount
+    // Fetch all recipes and categories on component mount
     useEffect(() => {
         fetchRecipes();
-    }, []);
+        if (username) {
+            fetchCategories();
+        }
+    }, [username]);
+
+    const fetchCategories = async () => {
+        try {
+            const res = await fetch(`http://localhost:4000/api/categories/${username}`);
+            if (res.ok) {
+                const data = await res.json();
+                setCategories(data.categories || []);
+            }
+        } catch (err) {
+            console.error('Error fetching categories:', err);
+        }
+    };
 
     // Ingredient search effect (debounced)
     useEffect(() => {
@@ -80,10 +97,20 @@ export default function Home() {
         };
     }, [ingredientQuery]);
 
-    // Filter recipes when search or ingredient data changes
+    // Filter recipes when search, ingredient, or category data changes
     useEffect(() => {
         const hasIngredientSearch = ingredientQuery.trim().length > 0;
-        const sourceRecipes = hasIngredientSearch ? ingredientResults : recipes;
+        let sourceRecipes = hasIngredientSearch ? ingredientResults : recipes;
+
+        // Filter by category if selected
+        if (selectedCategory) {
+            sourceRecipes = sourceRecipes.filter(recipe => {
+                if (Array.isArray(recipe.category)) {
+                    return recipe.category.some(cat => (cat.name || cat) === selectedCategory);
+                }
+                return recipe.category === selectedCategory;
+            });
+        }
 
         if (searchQuery.trim() === '') {
             setFilteredRecipes(sourceRecipes);
@@ -103,7 +130,7 @@ export default function Home() {
             });
             setFilteredRecipes(filtered);
         }
-    }, [searchQuery, recipes, ingredientQuery, ingredientResults]);
+    }, [searchQuery, recipes, ingredientQuery, ingredientResults, selectedCategory]);
 
     const fetchRecipes = async () => {
         try {
@@ -156,7 +183,10 @@ export default function Home() {
     if (showAddRecipe) {
         return (
             <AddNewRecipe
-                onSubmit={handleAddRecipe}
+                onSubmit={() => {
+                    setShowAddRecipe(false);
+                    fetchRecipes();
+                }}
                 onCancel={() => setShowAddRecipe(false)}
             />
         );
@@ -201,6 +231,58 @@ export default function Home() {
                         </p>
                     )}
                 </div>
+
+                {/* Categories Slider */}
+                {categories.length > 0 && (
+                    <div className="mt-8">
+                        <h2 className="text-lg font-semibold text-gray-800 mb-4">Your Categories</h2>
+                        <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
+                            {/* 'All' Option */}
+                            <button
+                                onClick={() => setSelectedCategory(null)}
+                                className={`flex flex-col items-center min-w-[80px] p-2 rounded-lg transition-all ${selectedCategory === null
+                                    ? 'bg-orange-100 scale-105'
+                                    : 'hover:bg-gray-50'
+                                    }`}
+                            >
+                                <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-2 border-2 ${selectedCategory === null ? 'border-orange-500 bg-white' : 'border-gray-200 bg-gray-100'
+                                    }`}>
+                                    <ChefHat className={`w-8 h-8 ${selectedCategory === null ? 'text-orange-500' : 'text-gray-400'}`} />
+                                </div>
+                                <span className={`text-sm font-medium ${selectedCategory === null ? 'text-orange-700' : 'text-gray-600'}`}>
+                                    All
+                                </span>
+                            </button>
+
+                            {categories.map((category) => (
+                                <button
+                                    key={category._id}
+                                    onClick={() => setSelectedCategory(selectedCategory === category.name ? null : category.name)}
+                                    className={`flex flex-col items-center min-w-[80px] p-2 rounded-lg transition-all ${selectedCategory === category.name
+                                        ? 'bg-orange-50 scale-105'
+                                        : 'hover:bg-gray-50'
+                                        }`}
+                                >
+                                    <div
+                                        className={`w-16 h-16 rounded-full flex items-center justify-center mb-2 border-2 overflow-hidden ${selectedCategory === category.name ? 'border-orange-500' : 'border-gray-200'
+                                            }`}
+                                        style={{ backgroundColor: category.color || '#f3f4f6' }}
+                                    >
+                                        {category.image ? (
+                                            <img src={category.image} alt={category.name} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <Folder className={`w-8 h-8 ${selectedCategory === category.name ? 'text-orange-600' : 'text-gray-400'}`} />
+                                        )}
+                                    </div>
+                                    <span className={`text-sm font-medium truncate max-w-[100px] ${selectedCategory === category.name ? 'text-orange-700' : 'text-gray-600'
+                                        }`}>
+                                        {category.name}
+                                    </span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 {/* Ingredient Search */}
                 <div className="relative max-w-2xl mt-6">
