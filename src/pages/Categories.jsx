@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Edit, FolderPlus, Folder, AlertCircle } from 'lucide-react';
+import { Edit, FolderPlus, Folder, AlertCircle, Trash} from 'lucide-react';
 import AddNewCategory from './AddNewCategory';
 import { useParams } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 import EditCategoryDialog from './EditCategoryDialog';
+import DeleteCategoryModal from '../components/DeleteCategoryModal';
 
 
 export default function Categories() {
@@ -13,13 +14,13 @@ export default function Categories() {
     const [error, setError] = useState(null);
     const [showAddCategory, setShowAddCategory] = useState(false);
     const [editCategory, setEditCategory] = useState(null);
-
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [categoriesToDelete, setCategoriesToDelete] = useState([]);
 
     const username = paramUsername;
 
     useEffect(() => {
         console.log('Username:', username);
-        console.log('Category Name:', categoryName);
     }, [username, categoryName]);
 
     useEffect(() => {
@@ -86,6 +87,43 @@ export default function Categories() {
         }
     };
 
+    const handleDeleteCategories = async (idsToDelete) => {
+        if (!idsToDelete || idsToDelete.length === 0) return;
+
+        const confirmDelete = window.confirm(
+            `Are you sure you want to delete ${idsToDelete.length} category(ies)?`
+        );
+        if (!confirmDelete) return;
+
+        try {
+            const res = await fetch("http://localhost:4000/api/categories/batch", {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ids: idsToDelete, username }),
+            });
+
+            if (res.ok) {
+                setShowDeleteModal(false);
+                fetchCategories(username);
+                return;
+            }
+
+            for (const id of idsToDelete) {
+                await fetch(`http://localhost:4000/api/categories/${id}`, {
+                    method: "DELETE",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ username }),
+                });
+            }
+
+            setShowDeleteModal(false);
+            fetchCategories(username);
+        } catch (err) {
+            console.error("Delete failed:", err);
+            alert("Failed to delete categories.");
+        }
+    };
+
     if (showAddCategory) {
         return (
             <AddNewCategory
@@ -105,12 +143,20 @@ export default function Categories() {
                     <Folder className="text-orange-500" />
                     Categories
                 </h1>
-                <button
-                    onClick={() => setShowAddCategory(true)}
-                    className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg font-semibold transition"
-                >
-                    + Add New Category
-                </button>
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={() => setShowAddCategory(true)}
+                        className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg font-semibold transition"
+                    >
+                        + Add New Category
+                    </button>
+                    <button
+                        onClick={() => setShowDeleteModal(true)}
+                        className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-semibold transition flex items-center gap-1"
+                    >
+                        <Trash size={23} />
+                    </button>
+                </div>
             </div>
 
             {/* Error State */}
@@ -213,6 +259,13 @@ export default function Categories() {
                 />
             )}
 
+            {showDeleteModal && (
+                <DeleteCategoryModal
+                    categories={categories}
+                    onClose={() => setShowDeleteModal(false)}
+                    onDelete={handleDeleteCategories}
+                />
+            )}
         </div>
     )
 }

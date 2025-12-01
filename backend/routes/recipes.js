@@ -94,7 +94,7 @@ router.post('/', async (req, res, next) => {
             cookTime: parseInt(cookTime),
             servings: parseInt(servings),
             difficulty: difficulty || 'medium',
-            category: [],
+            category: category,
             description: description?.trim() || '',
             externalLink: externalLink?.trim() || '',
             ingredients: ingredients.filter(i => i && i.trim()),
@@ -315,6 +315,21 @@ router.delete('/:id', async (req, res, next) => {
         }
 
         console.log('✅ Recipe deleted successfully');
+
+        const db = await dbConnection();
+        const categories = db.collection("categories");
+
+        const recipeIdObj = new ObjectId(id);
+
+        const cascadeResult = await categories.updateMany(
+            { 
+                username, 
+                "recipes._id": recipeIdObj 
+            },
+            { 
+                $pull: { recipes: { _id: recipeIdObj } } 
+            }
+        );
         res.json({
             success: true,
             message: 'Recipe deleted successfully'

@@ -189,7 +189,16 @@ export default function RecipeView() {
             return;
         }
 
-        const fullCategoryObjects = selectedCategories.map(catId => {
+        const newCategories = selectedCategories.filter(catId => {
+            return !recipe.category.some(c => c.id?.toString() === catId.toString() || c._id?.toString() === catId.toString());
+        });
+
+        if (newCategories.length === 0) {
+            setCategoryError("Selected categories are already added.");
+            return;
+        }
+
+        const fullCategoryObjects = newCategories.map(catId => {
             const cat = categories.find(c => c._id === catId);
             return {
                 id: cat._id,
@@ -213,8 +222,8 @@ export default function RecipeView() {
             }
 
             setRecipe(prev => ({
-                ...prev,
-                category: [...prev.category, ...fullCategoryObjects]
+                    ...prev,
+                    category: [...prev.category, ...fullCategoryObjects]
             }));
 
             setShowCategoryModal(false);
