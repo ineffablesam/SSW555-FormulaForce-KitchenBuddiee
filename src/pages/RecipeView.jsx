@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Clock, Users, ChefHat, Loader2, AlertCircle, ShoppingCart, Lock, Unlock } from 'lucide-react';
+import { ArrowLeft, Clock, Users, ChefHat, Loader2, AlertCircle, ShoppingCart, Trash2 } from 'lucide-react';
 import { getCookie } from '../components/AuthDialog';
 
 export default function RecipeView() {
@@ -20,7 +20,7 @@ export default function RecipeView() {
     const [cartMessage, setCartMessage] = useState(null);
     const [ingredientCartStatus, setIngredientCartStatus] = useState({});
     const [addingIngredient, setAddingIngredient] = useState({});
-    const [togglingPrivacy, setTogglingPrivacy] = useState(false);
+    const [deletingImage, setDeletingImage] = useState(false);
 
     useEffect(() => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -295,58 +295,49 @@ export default function RecipeView() {
         }
     };
 
-    const togglePrivacy = async () => {
+    const deleteRecipeImage = async () => {
         const username = getCookie('username');
         if (!username) {
-            setCartMessage({ type: 'error', text: 'Please log in to update privacy' });
+            setCartMessage({ type: 'error', text: 'Please log in to delete the image' });
             setTimeout(() => setCartMessage(null), 3000);
             return;
         }
 
-        if (!recipe) {
-            return;
+        if (!recipe?.image) {
+            return; // No image to delete
         }
 
-        // Check if user owns the recipe
-        if (recipe.username !== username) {
-            setCartMessage({ type: 'error', text: 'You can only update your own recipes' });
-            setTimeout(() => setCartMessage(null), 3000);
+        if (!window.confirm('Are you sure you want to delete this image?')) {
             return;
         }
-
-        const newPrivacyStatus = !recipe.isPrivate;
 
         try {
-            setTogglingPrivacy(true);
-            const response = await fetch(`http://localhost:4000/api/recipes/${id}/privacy`, {
+            setDeletingImage(true);
+            const response = await fetch(`http://localhost:4000/api/recipes/${id}/image`, {
                 method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
                 credentials: 'include',
-                body: JSON.stringify({ isPrivate: newPrivacyStatus }),
             });
 
             if (!response.ok) {
-                throw new Error('Failed to update privacy');
+                throw new Error('Failed to delete image');
             }
 
             const data = await response.json();
             
             // Update local recipe state immediately
-            setRecipe(prev => ({ ...prev, isPrivate: newPrivacyStatus }));
+            setRecipe(prev => ({ ...prev, image: null }));
             
             setCartMessage({
                 type: 'success',
-                text: `Recipe marked as ${newPrivacyStatus ? 'private' : 'public'}!`
+                text: 'Image deleted successfully!'
             });
             setTimeout(() => setCartMessage(null), 3000);
         } catch (err) {
-            console.error('Error updating privacy:', err);
-            setCartMessage({ type: 'error', text: 'Failed to update privacy' });
+            console.error('Error deleting image:', err);
+            setCartMessage({ type: 'error', text: 'Failed to delete image' });
             setTimeout(() => setCartMessage(null), 3000);
         } finally {
-            setTogglingPrivacy(false);
+            setDeletingImage(false);
         }
     };
 
@@ -475,7 +466,18 @@ export default function RecipeView() {
             {/* Hero Image */}
             <div className="relative h-48 sm:h-64 md:h-80 lg:h-96 overflow-hidden -mt-20">
                 {recipe.image ? (
-                    <img src={recipe.image} alt={recipe.title} className="w-full h-full object-cover" />
+                    <>
+                        <img src={recipe.image} alt={recipe.title} className="w-full h-full object-cover" />
+                        {/* Delete Image Button */}
+                        <button
+                            onClick={deleteRecipeImage}
+                            disabled={deletingImage}
+                            className="absolute top-4 right-4 bg-red-500 hover:bg-red-600 text-white p-2 rounded-full shadow-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed z-10"
+                            title="Delete image"
+                        >
+                            <Trash2 size={20} />
+                        </button>
+                    </>
                 ) : (
                     <div className="w-full h-full bg-gradient-to-br from-orange-400 to-yellow-500 flex items-center justify-center">
                         <ChefHat className="w-24 h-24 text-white opacity-50" />
