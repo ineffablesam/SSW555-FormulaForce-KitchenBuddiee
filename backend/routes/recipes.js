@@ -286,6 +286,47 @@ router.put('/:id', async (req, res, next) => {
     }
 });
 
+// PATCH /api/recipes/:id/image (delete recipe image)
+router.patch('/:id/image', async (req, res, next) => {
+    try {
+        const { id } = req.params;
+
+        // Get username from cookie
+        const username = req.cookies?.username;
+
+        console.log(`🖼️ Delete image request for recipe ${id} from user: ${username}`);
+
+        if (!username) {
+            console.log('❌ No username found in cookies');
+            return res.status(401).json({
+                error: 'Unauthorized',
+                message: 'You must be logged in to delete recipe images'
+            });
+        }
+
+        // Update recipe to remove image
+        const updatedRecipe = await updateRecipe(id, { image: null }, username);
+
+        if (!updatedRecipe) {
+            console.log('❌ Recipe not found or unauthorized');
+            return res.status(404).json({
+                error: 'Not found',
+                message: 'Recipe not found or you do not have permission to update it'
+            });
+        }
+
+        console.log('✅ Recipe image deleted successfully');
+        res.json({
+            success: true,
+            message: 'Recipe image deleted successfully',
+            recipe: updatedRecipe
+        });
+    } catch (error) {
+        console.error('❌ Error deleting recipe image:', error);
+        next(error);
+    }
+});
+
 // DELETE /api/recipes/:id (delete recipe)
 router.delete('/:id', async (req, res, next) => {
     try {
