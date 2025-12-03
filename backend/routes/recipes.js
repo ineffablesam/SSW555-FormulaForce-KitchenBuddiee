@@ -147,8 +147,10 @@ router.get('/user/:username', async (req, res, next) => {
 router.get('/:id', async (req, res, next) => {
     try {
         console.log(`🔍 Fetching recipe: ${req.params.id}`);
+        const requestingUser = req.cookies?.username;
         const db = await dbConnection();
         const recipe = await getRecipeById(req.params.id);
+        
         if (!recipe) {
             console.log('❌ Recipe not found');
             return res.status(404).json({
@@ -156,6 +158,16 @@ router.get('/:id', async (req, res, next) => {
                 message: 'Recipe not found'
             });
         }
+
+        // Check if recipe is private and user doesn't own it
+        if (recipe.isPrivate === true && recipe.username !== requestingUser) {
+            console.log('❌ Recipe is private and user is not the owner');
+            return res.status(404).json({
+                error: 'Not found',
+                message: 'Recipe not found'
+            });
+        }
+
         console.log('✅ Recipe found:', recipe.title);
         res.json({ success: true, recipe: recipe });
     } catch (error) {
@@ -240,6 +252,55 @@ router.patch('/:id/category', async (req, res, next) => {
 
     } catch (error) {
         console.error('❌ Error updating recipe category:', error);
+        next(error);
+    }
+});
+
+// PATCH /api/recipes/:id/privacy (toggle recipe privacy)
+router.patch('/:id/privacy', async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { isPrivate } = req.body;
+
+        // Get username from cookie
+        const username = req.cookies?.username;
+
+        console.log(`🔒 Toggle privacy request for recipe ${id} from user: ${username}`);
+
+        if (!username) {
+            console.log('❌ No username found in cookies');
+            return res.status(401).json({
+                error: 'Unauthorized',
+                message: 'You must be logged in to update recipe privacy'
+            });
+        }
+
+        if (typeof isPrivate !== 'boolean') {
+            return res.status(400).json({
+                error: 'Invalid input',
+                message: 'isPrivate must be a boolean value'
+            });
+        }
+
+        // Update recipe privacy
+        const updatedRecipe = await updateRecipe(id, { isPrivate }, username);
+
+        if (!updatedRecipe) {
+            console.log('❌ Recipe not found or unauthorized');
+            return res.status(404).json({
+                error: 'Not found',
+                message: 'Recipe not found or you do not have permission to update it'
+            });
+        }
+
+        console.log(`✅ Recipe privacy updated to ${isPrivate ? 'private' : 'public'}`);
+        res.json({
+            success: true,
+            message: `Recipe marked as ${isPrivate ? 'private' : 'public'}`,
+            recipe: updatedRecipe
+        });
+    } catch (error) {
+        console.error('❌ Error updating recipe privacy:', error);
         next(error);
     }
 });

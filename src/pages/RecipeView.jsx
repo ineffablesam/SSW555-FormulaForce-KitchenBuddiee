@@ -47,7 +47,9 @@ export default function RecipeView() {
             setLoading(true);
             setError(null);
 
-            const response = await fetch(`http://localhost:4000/api/recipes/${id}`);
+            const response = await fetch(`http://localhost:4000/api/recipes/${id}`, {
+                credentials: 'include'
+            });
             if (!response.ok) {
                 if (response.status === 404) {
                     throw new Error('Recipe not found');
@@ -516,6 +518,17 @@ export default function RecipeView() {
                                 <span className="text-sm text-gray-500">
                                     by <span className="font-semibold text-gray-700">{recipe.username}</span>
                                 </span>
+                            )}
+                            {getCookie('username') === recipe.username && (
+                                <button
+                                    onClick={togglePrivacy}
+                                    disabled={togglingPrivacy}
+                                    className={`px-4 py-2 ${recipe.isPrivate ? 'bg-gray-500 hover:bg-gray-600' : 'bg-blue-500 hover:bg-blue-600'} text-white rounded-lg font-semibold flex items-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
+                                    title={recipe.isPrivate ? 'Make recipe public' : 'Make recipe private'}
+                                >
+                                    {recipe.isPrivate ? <Unlock size={18} /> : <Lock size={18} />}
+                                    {togglingPrivacy ? 'Updating...' : (recipe.isPrivate ? 'Make Public' : 'Make Private')}
+                                </button>
                             )}
                             <button
                                 onClick={addToCart}
