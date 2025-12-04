@@ -49,6 +49,7 @@ export async function createRecipe(recipeData) {
         ...recipeData,
         tags,
         isPrivate: !!recipeData.isPrivate,
+        tags: recipeData.tags || [],
         createdAt: new Date(),
         updatedAt: new Date()
     });
