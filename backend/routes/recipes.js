@@ -105,7 +105,8 @@ router.post('/', async (req, res, next) => {
             steps: steps.filter(s => s && s.trim()),
             image: image || null,
             username: username || 'anonymous',
-            isPrivate: !!isPrivate
+            isPrivate: !!isPrivate,
+            tags: Array.isArray(tags) ? tags.filter(t => t && t.trim()) : []
         };
 
         console.log('✨ Creating recipe with data:', {
@@ -346,6 +347,17 @@ router.put('/:id', async (req, res, next) => {
     try {
         const { id } = req.params;
         const updates = req.body;
+
+        if (updates.tags && !Array.isArray(updates.tags)) {
+            return res.status(400).json({
+                error: 'Invalid tags',
+                message: 'Tags must be an array'
+            });
+        }
+
+        if (updates.tags) {
+            updates.tags = updates.tags.filter(t => t && t.trim());
+        }
 
         // Get username from cookie
         const username = req.cookies?.username || req.body.username;
