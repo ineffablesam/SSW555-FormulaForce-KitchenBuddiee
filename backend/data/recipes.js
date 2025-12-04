@@ -5,14 +5,36 @@ import { dbConnection } from '../config/mongoConnection.js';
 const RECIPES_COLLECTION = 'recipes';
 const escapeRegex = (text = '') => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
+// Normalize tags: trim, drop empties, lowercase for dedupe but keep original casing consistent
+const sanitizeTags = (tags = []) => {
+    if (!Array.isArray(tags)) return [];
+    const seen = new Set();
+    const cleaned = [];
+
+    for (const raw of tags) {
+        if (typeof raw !== 'string') continue;
+        const trimmed = raw.trim();
+        if (!trimmed) continue;
+        const key = trimmed.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        cleaned.push(trimmed);
+    }
+
+    return cleaned;
+};
+
 export async function createRecipe(recipeData) {
     const db = await dbConnection();
     const collection = db.collection(RECIPES_COLLECTION);
+
+    const tags = sanitizeTags(recipeData.tags);
 
     console.log('📦 Inserting recipe:', recipeData.title);
 
     const result = await collection.insertOne({
         ...recipeData,
+        tags,
         isPrivate: !!recipeData.isPrivate,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -26,7 +48,9 @@ export async function createRecipe(recipeData) {
 
     return {
         id: result.insertedId,
-        ...recipeData
+        ...recipeData,
+        tags,
+        isPrivate: !!recipeData.isPrivate
     };
 }
 
@@ -104,9 +128,14 @@ export async function updateRecipe(id, updates, username) {
     const filter = { _id: objectId };
     if (username) filter.username = username;
 
+    const sanitizedUpdates = { ...updates };
+    if (updates.tags) {
+        sanitizedUpdates.tags = sanitizeTags(updates.tags);
+    }
+
     const result = await collection.findOneAndUpdate(
         filter,
-        { $set: { ...updates, updatedAt: new Date() } },
+        { $set: { ...sanitizedUpdates, updatedAt: new Date() } },
         { returnDocument: 'after' }
     );
 
@@ -129,4 +158,34 @@ export async function deleteRecipe(id, username) {
 
     const result = await collection.deleteOne(filter);
     return result.deletedCount > 0;
+}
+
+export async function removeTagFromUserRecipes(username, tagName) {
+    if (!username) {
+        throw createHttpError(401, 'You must be logged in to modify tags');
+    }
+
+    if (!tagName || typeof tagName !== 'string' || !tagName.trim()) {
+        throw createHttpError(400, 'Tag name is required');
+    }
+
+    const normalizedTag = tagName.trim();
+    const db = await dbConnection();
+    const collection = db.collection(RECIPES_COLLECTION);
+    const regex = new RegExp(`^${escapeRegex(normalizedTag)}$`, 'i');
+
+    const result = await collection.updateMany(
+        {
+            username,
+            tags: { $regex: regex }
+        },
+        {
+            $pull: { tags: { $regex: regex } },
+            $set: { updatedAt: new Date() }
+        }
+    );
+
+    return {
+        modifiedCount: result.modifiedCount || 0
+    };
 }

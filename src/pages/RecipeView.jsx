@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Clock, Users, ChefHat, Loader2, AlertCircle, ShoppingCart, Trash2 } from 'lucide-react';
+import { ArrowLeft, Clock, Users, ChefHat, Loader2, AlertCircle, ShoppingCart, Trash2, Lock, Unlock, Tag, X } from 'lucide-react';
 import { getCookie } from '../components/AuthDialog';
 
 export default function RecipeView() {
@@ -21,6 +21,8 @@ export default function RecipeView() {
     const [ingredientCartStatus, setIngredientCartStatus] = useState({});
     const [addingIngredient, setAddingIngredient] = useState({});
     const [deletingImage, setDeletingImage] = useState(false);
+    const [togglingPrivacy, setTogglingPrivacy] = useState(false);
+    const [removingTag, setRemovingTag] = useState(null);
 
     useEffect(() => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -138,6 +140,85 @@ export default function RecipeView() {
             setTimeout(() => setCartMessage(null), 3000);
         } finally {
             setAddingIngredient(prev => ({ ...prev, [ingredient]: false }));
+        }
+    };
+
+    const togglePrivacy = async () => {
+        if (!recipe) return;
+        const username = getCookie('username');
+        if (!username || username !== recipe.username) {
+            setCartMessage({ type: 'error', text: 'Only the owner can change privacy' });
+            setTimeout(() => setCartMessage(null), 3000);
+            return;
+        }
+
+        try {
+            setTogglingPrivacy(true);
+            const nextPrivacy = !recipe.isPrivate;
+            const response = await fetch(`http://localhost:4000/api/recipes/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ isPrivate: nextPrivacy })
+            });
+
+            if (!response.ok) {
+                const data = await response.json().catch(() => ({}));
+                throw new Error(data.message || 'Failed to update privacy');
+            }
+
+            setRecipe(prev => ({ ...prev, isPrivate: nextPrivacy }));
+            setCartMessage({
+                type: 'success',
+                text: `Recipe is now ${nextPrivacy ? 'private' : 'public'}`
+            });
+            setTimeout(() => setCartMessage(null), 2500);
+        } catch (err) {
+            console.error('Error updating privacy:', err);
+            setCartMessage({ type: 'error', text: err.message || 'Failed to update privacy' });
+            setTimeout(() => setCartMessage(null), 3000);
+        } finally {
+            setTogglingPrivacy(false);
+        }
+    };
+
+    const handleDeleteTag = async (tag) => {
+        if (!recipe) return;
+        const username = getCookie('username');
+        if (!username || username !== recipe.username) {
+            setCartMessage({ type: 'error', text: 'Only the owner can delete tags' });
+            setTimeout(() => setCartMessage(null), 3000);
+            return;
+        }
+
+        try {
+            setRemovingTag(tag);
+            const response = await fetch(`http://localhost:4000/api/recipes/tags/${encodeURIComponent(tag)}`, {
+                method: 'DELETE',
+                credentials: 'include'
+            });
+
+            if (!response.ok) {
+                const data = await response.json().catch(() => ({}));
+                throw new Error(data.message || 'Failed to delete tag');
+            }
+
+            setRecipe(prev => ({
+                ...prev,
+                tags: (prev.tags || []).filter(t => t.toLowerCase() !== tag.toLowerCase())
+            }));
+
+            setCartMessage({
+                type: 'success',
+                text: `Removed tag "${tag}" from your recipes`
+            });
+            setTimeout(() => setCartMessage(null), 2500);
+        } catch (err) {
+            console.error('Error deleting tag:', err);
+            setCartMessage({ type: 'error', text: err.message || 'Failed to delete tag' });
+            setTimeout(() => setCartMessage(null), 3000);
+        } finally {
+            setRemovingTag(null);
         }
     };
 
@@ -376,6 +457,8 @@ export default function RecipeView() {
         );
     }
 
+    const isOwner = getCookie('username') === recipe?.username;
+
     return (
         <div className="min-h-screen bg-gray-50 pb-12">
             {/* MODAL */}
@@ -562,6 +645,35 @@ export default function RecipeView() {
                                     <span className="font-medium">Open External Link</span>
                                 </a>
                             </div>
+                        )}
+
+                        {recipe.tags && recipe.tags.length > 0 ? (
+                            <div className="mt-4 flex flex-wrap gap-2">
+                                {recipe.tags.map((tag) => (
+                                    <span
+                                        key={tag}
+                                        className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-sm border border-gray-200"
+                                    >
+                                        <Tag size={14} className="text-orange-500" />
+                                        <span>{tag}</span>
+                                        {isOwner && (
+                                            <button
+                                                type="button"
+                                                onClick={() => handleDeleteTag(tag)}
+                                                disabled={removingTag === tag}
+                                                className="text-gray-500 hover:text-red-600 disabled:opacity-50"
+                                                title="Delete tag"
+                                            >
+                                                {removingTag === tag ? '...' : <X size={14} />}
+                                            </button>
+                                        )}
+                                    </span>
+                                ))}
+                            </div>
+                        ) : (
+                            isOwner && (
+                                <p className="mt-3 text-sm text-gray-500">No tags yet. Add some when editing your recipe.</p>
+                            )
                         )}
                     </div>
 
