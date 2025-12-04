@@ -133,7 +133,7 @@ export default function AuthDialog({
     // Get title and description
     const getTitle = () => {
         if (title) return title;
-        return isSignIn ? 'Welcome Back!' : 'Join Us!';
+        return isSignIn ? 'Welcome Back  !' : 'Join Us!';
     };
 
     const getDescription = () => {
