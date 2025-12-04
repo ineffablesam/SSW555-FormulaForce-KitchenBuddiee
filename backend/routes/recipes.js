@@ -106,7 +106,7 @@ router.post('/', async (req, res, next) => {
             image: image || null,
             username: username || 'anonymous',
             isPrivate: !!isPrivate,
-            tags: Array.isArray(tags) ? tags.filter(t => t && t.trim()) : []
+            tags: Array.isArray(tags) ? tags.filter(t => t && t) : []
         };
 
         console.log('✨ Creating recipe with data:', {
@@ -185,7 +185,7 @@ router.get('/:id', async (req, res, next) => {
         const requestingUser = req.cookies?.username;
         const db = await dbConnection();
         const recipe = await getRecipeById(req.params.id);
-        
+
         if (!recipe) {
             console.log('❌ Recipe not found');
             return res.status(404).json({
@@ -356,7 +356,7 @@ router.put('/:id', async (req, res, next) => {
         }
 
         if (updates.tags) {
-            updates.tags = updates.tags.filter(t => t && t.trim());
+            updates.tags = updates.tags.filter(t => t && t);
         }
 
         // Get username from cookie
@@ -470,12 +470,12 @@ router.delete('/:id', async (req, res, next) => {
         const recipeIdObj = new ObjectId(id);
 
         const cascadeResult = await categories.updateMany(
-            { 
-                username, 
-                "recipes._id": recipeIdObj 
+            {
+                username,
+                "recipes._id": recipeIdObj
             },
-            { 
-                $pull: { recipes: { _id: recipeIdObj } } 
+            {
+                $pull: { recipes: { _id: recipeIdObj } }
             }
         );
         res.json({
