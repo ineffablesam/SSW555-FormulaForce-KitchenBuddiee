@@ -362,7 +362,7 @@ router.put('/:id', async (req, res, next) => {
         // Get username from cookie
         const username = req.cookies?.username || req.body.username;
 
-        console.log(`✏️ Updating recipe ${id} for user: ${username}`);
+        console.log(`✏️ Updating.            recipe ${id} for user: ${username}`);
 
         if (!username) {
             return res.status(401).json({
