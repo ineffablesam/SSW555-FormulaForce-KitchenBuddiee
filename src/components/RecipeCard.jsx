@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom';
-import { Clock, Users, ChefHat, Heart, Trash2, Lock, Globe, Pencil } from 'lucide-react';
+import { Clock, Users, ChefHat, Heart, Trash2, Lock, Globe, Pencil, Loader2 } from 'lucide-react';
 
-export const RecipeCard = ({ recipe, onDelete = null, onTogglePrivacy = null, onEdit = null }) => {
+export const RecipeCard = ({ recipe, onDelete = null, onTogglePrivacy = null, onEdit = null, currentUsername = "samuelphilip" }) => {
   const [isFavorite, setIsFavorite] = useState(false);
+  const [isLoadingFavorite, setIsLoadingFavorite] = useState(false);
+  const [favoritesLoaded, setFavoritesLoaded] = useState(false);
   const navigate = useNavigate();
   const recipeId = recipe._id || recipe.id;
 
@@ -30,6 +32,89 @@ export const RecipeCard = ({ recipe, onDelete = null, onTogglePrivacy = null, on
       setFullRecipe(recipe);
     }
   }, [recipeId, isPartial, recipe]);
+
+  // Load favorites from backend
+  // Load favorites from backend
+  useEffect(() => {
+    const loadFavorites = async () => {
+      // If no username, just mark as loaded (guest user)
+      if (!currentUsername) {
+        setFavoritesLoaded(true);
+        return;
+      }
+
+      if (!recipeId) {
+        setFavoritesLoaded(true);
+        return;
+      }
+
+      try {
+        const res = await fetch(`http://localhost:4000/api/favorites/${currentUsername}`, {
+          credentials: 'include'
+        });
+        const data = await res.json();
+
+        if (data.favorites && Array.isArray(data.favorites)) {
+          setIsFavorite(data.favorites.includes(recipeId));
+        }
+        setFavoritesLoaded(true);
+      } catch (err) {
+        console.error("Failed to load favorites:", err);
+        setFavoritesLoaded(true); // Still mark as loaded even on error
+      }
+    };
+
+    loadFavorites();
+  }, [currentUsername, recipeId]);
+  const toggleFavorite = async (e) => {
+    e.stopPropagation();
+
+    if (!currentUsername) {
+      alert('Please log in to favorite recipes');
+      return;
+    }
+
+    setIsLoadingFavorite(true);
+
+    try {
+      // Get current favorites
+      const getRes = await fetch(`http://localhost:4000/api/favorites/${currentUsername}`, {
+        credentials: 'include'
+      });
+      const currentData = await getRes.json();
+      const currentFavorites = currentData.favorites || [];
+
+      // Toggle favorite
+      let updatedFavorites;
+      if (currentFavorites.includes(recipeId)) {
+        updatedFavorites = currentFavorites.filter(id => id !== recipeId);
+      } else {
+        updatedFavorites = [...currentFavorites, recipeId];
+      }
+
+      // Update favorites on backend
+      const putRes = await fetch(`http://localhost:4000/api/favorites/${currentUsername}`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ favorites: updatedFavorites })
+      });
+
+      if (!putRes.ok) {
+        throw new Error('Failed to update favorites');
+      }
+
+      // Update local state
+      setIsFavorite(!isFavorite);
+    } catch (err) {
+      console.error("Failed to toggle favorite:", err);
+      alert('Failed to update favorite. Please try again.');
+    } finally {
+      setIsLoadingFavorite(false);
+    }
+  };
 
   if (!fullRecipe) {
     return (
@@ -101,16 +186,19 @@ export const RecipeCard = ({ recipe, onDelete = null, onTogglePrivacy = null, on
               </button>
             )}
             <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsFavorite(!isFavorite);
-              }}
-              className="bg-white rounded-full p-2 shadow-lg hover:scale-110 transition-transform pointer-events-auto"
+              onClick={toggleFavorite}
+              disabled={isLoadingFavorite || !favoritesLoaded}
+              className="bg-white rounded-full p-2 shadow-lg hover:scale-110 transition-transform pointer-events-auto disabled:opacity-50 disabled:cursor-not-allowed"
+              title={isFavorite ? "Remove from favorites" : "Add to favorites"}
             >
-              <Heart
-                size={20}
-                className={isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-600'}
-              />
+              {isLoadingFavorite ? (
+                <Loader2 size={20} className="text-gray-600 animate-spin" />
+              ) : (
+                <Heart
+                  size={20}
+                  className={isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-600'}
+                />
+              )}
             </button>
           </div>
         </div>

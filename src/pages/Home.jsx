@@ -641,6 +641,7 @@ export default function Home() {
                             >
                                 <RecipeCard
                                     recipe={recipe}
+                                    currentUsername={"samuelphilip"}  // ← Add this line
                                 />
                             </motion.div>
                         ))}
