@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ChefHat, X, AlertCircle, Check, Plus, Clock, Users, GripVertical, Trash2, ImageIcon, Save, Link2, Lock, Globe } from 'lucide-react';
+import { ChefHat, X, AlertCircle, Check, Plus, Clock, Users, GripVertical, Trash2, ImageIcon, Save, Link2, Lock, Globe, Tag } from 'lucide-react';
 import AuthDialog, { getCookie } from '../components/AuthDialog';
 const AddNewRecipe = ({ onSubmit, onCancel, initialRecipe = null }) => {
     const username = getCookie('username');
@@ -13,6 +13,7 @@ const AddNewRecipe = ({ onSubmit, onCancel, initialRecipe = null }) => {
     const [selectedCategories, setSelectedCategories] = useState([]);
     const [categoryError, setCategoryError] = useState('');
     const [categoryLoading, setCategoryLoading] = useState(false);
+    const [newTag, setNewTag] = useState('');
 
 
     const [formData, setFormData] = useState({
@@ -24,6 +25,7 @@ const AddNewRecipe = ({ onSubmit, onCancel, initialRecipe = null }) => {
         category: [],
         description: '',
         externalLink: '',
+        tags: [],
         ingredients: [{ id: Date.now(), text: '' }],
         steps: [{ id: Date.now() + 1, text: '' }],
         image: null,
@@ -46,6 +48,7 @@ const AddNewRecipe = ({ onSubmit, onCancel, initialRecipe = null }) => {
                 category: recipeToEdit.category || [],
                 description: recipeToEdit.description || '',
                 externalLink: recipeToEdit.externalLink || '',
+                tags: recipeToEdit.tags || [],
                 ingredients: recipeToEdit.ingredients && recipeToEdit.ingredients.length > 0
                     ? recipeToEdit.ingredients.map((text, index) => ({ id: Date.now() + index, text }))
                     : [{ id: Date.now(), text: '' }],
@@ -182,6 +185,18 @@ const AddNewRecipe = ({ onSubmit, onCancel, initialRecipe = null }) => {
                 .map(s => s.text.trim())
                 .filter(text => text.length > 0);
 
+            const cleanedTags = [];
+            const seenTags = new Set();
+            for (const tag of formData.tags || []) {
+                if (typeof tag !== 'string') continue;
+                const trimmed = tag.trim();
+                if (!trimmed) continue;
+                const key = trimmed.toLowerCase();
+                if (seenTags.has(key)) continue;
+                seenTags.add(key);
+                cleanedTags.push(trimmed);
+            }
+
             // Prepare recipe data as JSON
             const recipeData = {
                 title: formData.title.trim(),
@@ -192,6 +207,7 @@ const AddNewRecipe = ({ onSubmit, onCancel, initialRecipe = null }) => {
                 category: formData.category,
                 description: formData.description.trim(),
                 externalLink: formData.externalLink?.trim() || '',
+                tags: cleanedTags,
                 ingredients: validIngredients,
                 steps: validSteps,
                 image: formData.image || null,
@@ -275,6 +291,25 @@ const AddNewRecipe = ({ onSubmit, onCancel, initialRecipe = null }) => {
     };
     const removeImage = () => {
         setFormData({ ...formData, image: null, imagePreview: null });
+    };
+
+    const handleAddTag = () => {
+        const trimmed = newTag.trim();
+        if (!trimmed) return;
+
+        setFormData(prev => {
+            const exists = prev.tags?.some(t => t.toLowerCase() === trimmed.toLowerCase());
+            if (exists) return prev;
+            return { ...prev, tags: [...(prev.tags || []), trimmed] };
+        });
+        setNewTag('');
+    };
+
+    const handleRemoveTag = (tagToRemove) => {
+        setFormData(prev => ({
+            ...prev,
+            tags: (prev.tags || []).filter(t => t.toLowerCase() !== tagToRemove.toLowerCase())
+        }));
     };
 
     // Drag and Drop for Ingredients
@@ -510,6 +545,56 @@ const AddNewRecipe = ({ onSubmit, onCancel, initialRecipe = null }) => {
                                             <div className="flex items-center gap-1 mt-2 text-red-600 text-sm">
                                                 <AlertCircle className="w-4 h-4" />
                                                 <span>{errors.externalLink}</span>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="mt-6">
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                            <Tag className="w-4 h-4 inline mr-2" />
+                                            Tags <span className="text-gray-400">(optional)</span>
+                                        </label>
+                                        <div className="flex flex-col sm:flex-row gap-3">
+                                            <input
+                                                type="text"
+                                                value={newTag}
+                                                onChange={(e) => setNewTag(e.target.value)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                        e.preventDefault();
+                                                        handleAddTag();
+                                                    }
+                                                }}
+                                                className="flex-1 px-4 py-3 border-2 border-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-500 hover:border-orange-300 transition-all"
+                                                placeholder="e.g., quick, vegetarian, beginner"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={handleAddTag}
+                                                className="px-4 py-3 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition-colors"
+                                            >
+                                                Add Tag
+                                            </button>
+                                        </div>
+
+                                        {formData.tags && formData.tags.length > 0 && (
+                                            <div className="mt-3 flex flex-wrap gap-2">
+                                                {formData.tags.map((tag) => (
+                                                    <span
+                                                        key={tag}
+                                                        className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-50 text-orange-700 border border-orange-200 text-sm"
+                                                    >
+                                                        {tag}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleRemoveTag(tag)}
+                                                            className="text-orange-600 hover:text-orange-800"
+                                                            aria-label={`Remove ${tag}`}
+                                                        >
+                                                            <X size={14} />
+                                                        </button>
+                                                    </span>
+                                                ))}
                                             </div>
                                         )}
                                     </div>

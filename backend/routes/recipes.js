@@ -1,5 +1,5 @@
 import express from 'express';
-import { createRecipe, getAllRecipes, getRecipesByUser, getRecipeById, updateRecipe, deleteRecipe } from '../data/recipes.js';
+import { createRecipe, getAllRecipes, getRecipesByUser, getRecipeById, updateRecipe, deleteRecipe, removeTagFromUserRecipes } from '../data/recipes.js';
 import { ObjectId } from 'mongodb';
 import { dbConnection } from '../config/mongoConnection.js';
 
@@ -42,7 +42,7 @@ router.post('/', async (req, res, next) => {
         console.log('Body keys:', Object.keys(req.body));
         console.log('Title:', req.body.title);
 
-        const { title, prepTime, cookTime, servings, difficulty, category, description, externalLink, ingredients, steps, image, username, isPrivate } = req.body;
+        const { title, prepTime, cookTime, servings, difficulty, category, description, externalLink, ingredients, steps, image, username, isPrivate, tags } = req.body;
 
         // Validation
         if (!title || !prepTime || !cookTime || !servings) {
@@ -97,6 +97,7 @@ router.post('/', async (req, res, next) => {
             category: category,
             description: description?.trim() || '',
             externalLink: externalLink?.trim() || '',
+            tags,
             ingredients: ingredients.filter(i => i && i.trim()),
             steps: steps.filter(s => s && s.trim()),
             image: image || null,
@@ -139,6 +140,39 @@ router.get('/user/:username', async (req, res, next) => {
         res.json({ success: true, recipes });
     } catch (error) {
         console.error('❌ Error fetching user recipes:', error);
+        next(error);
+    }
+});
+
+// DELETE /api/recipes/tags/:tag (remove a tag from all of the user's recipes)
+router.delete('/tags/:tag', async (req, res, next) => {
+    try {
+        const username = req.cookies?.username;
+        const tag = req.params.tag;
+
+        if (!username) {
+            return res.status(401).json({
+                error: 'Unauthorized',
+                message: 'You must be logged in to delete tags'
+            });
+        }
+
+        if (!tag || !tag.trim()) {
+            return res.status(400).json({
+                error: 'Invalid tag',
+                message: 'Tag name is required'
+            });
+        }
+
+        const result = await removeTagFromUserRecipes(username, tag);
+
+        return res.json({
+            success: true,
+            message: 'Tag removed successfully',
+            removedFrom: result.modifiedCount
+        });
+    } catch (error) {
+        console.error('❌ Error deleting tag:', error);
         next(error);
     }
 });
