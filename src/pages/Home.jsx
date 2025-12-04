@@ -26,6 +26,11 @@ export default function Home() {
     const [searchMode, setSearchMode] = useState('recipe'); // 'recipe' or 'pantry'
     const username = getCookie('username');
 
+    const getTagName = (tag) => {
+        if (typeof tag === 'string') return tag;
+        return (tag?.name || tag?.label || '').trim();
+    };
+
     // Fetch all recipes and categories on component mount
     useEffect(() => {
         fetchRecipes();
@@ -113,7 +118,7 @@ export default function Home() {
                     ing.toLowerCase().includes(query)
                 );
                 const tagsMatch = recipe.tags?.some(tag =>
-                    tag.toLowerCase().includes(query)
+                    getTagName(tag).toLowerCase().includes(query)
                 );
 
                 return titleMatch || descriptionMatch || ingredientsMatch || tagsMatch;
