@@ -2,6 +2,55 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ChefHat, X, AlertCircle, Check, Plus, Clock, Users, GripVertical, Trash2, ImageIcon, Save, Link2, Lock, Globe, Tag } from 'lucide-react';
 import AuthDialog, { getCookie } from '../components/AuthDialog';
+
+const DEFAULT_TAG_COLOR = '#f97316';
+
+const isValidHexColor = (value = '') => /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(value.trim());
+
+const normalizeTag = (tag) => {
+    if (typeof tag === 'string') {
+        const name = tag.trim();
+        if (!name) return null;
+        return { name, color: DEFAULT_TAG_COLOR };
+    }
+
+    if (tag && typeof tag === 'object') {
+        const name = (tag.name || tag.label || '').trim();
+        if (!name) return null;
+        const color = isValidHexColor(tag.color) ? tag.color : DEFAULT_TAG_COLOR;
+        return { name, color };
+    }
+
+    return null;
+};
+
+const normalizeTags = (tags = []) => {
+    const tagMap = new Map();
+    for (const tag of tags) {
+        const normalized = normalizeTag(tag);
+        if (!normalized) continue;
+        tagMap.set(normalized.name.toLowerCase(), normalized);
+    }
+    return Array.from(tagMap.values());
+};
+
+const getTagColor = (tag) => {
+    if (tag && typeof tag === 'object' && isValidHexColor(tag.color)) {
+        return tag.color;
+    }
+    return DEFAULT_TAG_COLOR;
+};
+
+const getTagName = (tag) => {
+    if (typeof tag === 'string') return tag;
+    return (tag?.name || tag?.label || '').trim();
+};
+
+const getTagBackground = (color) => {
+    if (!color) return `${DEFAULT_TAG_COLOR}20`;
+    return color.length === 7 ? `${color}20` : color;
+};
+
 const AddNewRecipe = ({ onSubmit, onCancel, initialRecipe = null }) => {
     const username = getCookie('username');
     const location = useLocation();
@@ -14,6 +63,7 @@ const AddNewRecipe = ({ onSubmit, onCancel, initialRecipe = null }) => {
     const [categoryError, setCategoryError] = useState('');
     const [categoryLoading, setCategoryLoading] = useState(false);
     const [newTag, setNewTag] = useState('');
+    const [newTagColor, setNewTagColor] = useState(DEFAULT_TAG_COLOR);
 
 
     const [formData, setFormData] = useState({
@@ -48,7 +98,7 @@ const AddNewRecipe = ({ onSubmit, onCancel, initialRecipe = null }) => {
                 category: recipeToEdit.category || [],
                 description: recipeToEdit.description || '',
                 externalLink: recipeToEdit.externalLink || '',
-                tags: recipeToEdit.tags || [],
+                tags: normalizeTags(recipeToEdit.tags || []),
                 ingredients: recipeToEdit.ingredients && recipeToEdit.ingredients.length > 0
                     ? recipeToEdit.ingredients.map((text, index) => ({ id: Date.now() + index, text }))
                     : [{ id: Date.now(), text: '' }],
@@ -185,17 +235,7 @@ const AddNewRecipe = ({ onSubmit, onCancel, initialRecipe = null }) => {
                 .map(s => s.text.trim())
                 .filter(text => text.length > 0);
 
-            const cleanedTags = [];
-            const seenTags = new Set();
-            for (const tag of formData.tags || []) {
-                if (typeof tag !== 'string') continue;
-                const trimmed = tag.trim();
-                if (!trimmed) continue;
-                const key = trimmed.toLowerCase();
-                if (seenTags.has(key)) continue;
-                seenTags.add(key);
-                cleanedTags.push(trimmed);
-            }
+            const cleanedTags = normalizeTags(formData.tags);
 
             // Prepare recipe data as JSON
             const recipeData = {
@@ -298,17 +338,19 @@ const AddNewRecipe = ({ onSubmit, onCancel, initialRecipe = null }) => {
         if (!trimmed) return;
 
         setFormData(prev => {
-            const exists = prev.tags?.some(t => t.toLowerCase() === trimmed.toLowerCase());
-            if (exists) return prev;
-            return { ...prev, tags: [...(prev.tags || []), trimmed] };
+            const color = isValidHexColor(newTagColor) ? newTagColor : DEFAULT_TAG_COLOR;
+            const tagMap = new Map(normalizeTags(prev.tags).map(tag => [tag.name.toLowerCase(), tag]));
+            tagMap.set(trimmed.toLowerCase(), { name: trimmed, color });
+            return { ...prev, tags: Array.from(tagMap.values()) };
         });
         setNewTag('');
     };
 
     const handleRemoveTag = (tagToRemove) => {
+        const target = getTagName(tagToRemove).toLowerCase();
         setFormData(prev => ({
             ...prev,
-            tags: (prev.tags || []).filter(t => t.toLowerCase() !== tagToRemove.toLowerCase())
+            tags: (prev.tags || []).filter(t => getTagName(t).toLowerCase() !== target)
         }));
     };
 
@@ -554,47 +596,90 @@ const AddNewRecipe = ({ onSubmit, onCancel, initialRecipe = null }) => {
                                             <Tag className="w-4 h-4 inline mr-2" />
                                             Tags <span className="text-gray-400">(optional)</span>
                                         </label>
-                                        <div className="flex flex-col sm:flex-row gap-3">
-                                            <input
-                                                type="text"
-                                                value={newTag}
-                                                onChange={(e) => setNewTag(e.target.value)}
-                                                onKeyDown={(e) => {
-                                                    if (e.key === 'Enter') {
-                                                        e.preventDefault();
-                                                        handleAddTag();
-                                                    }
-                                                }}
-                                                className="flex-1 px-4 py-3 border-2 border-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-500 hover:border-orange-300 transition-all"
-                                                placeholder="e.g., quick, vegetarian, beginner"
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={handleAddTag}
-                                                className="px-4 py-3 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition-colors"
-                                            >
-                                                Add Tag
-                                            </button>
+                                        <div className="flex flex-col gap-3">
+                                            <div className="flex flex-col sm:flex-row gap-3">
+                                                <input
+                                                    type="text"
+                                                    value={newTag}
+                                                    onChange={(e) => setNewTag(e.target.value)}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') {
+                                                            e.preventDefault();
+                                                            handleAddTag();
+                                                        }
+                                                    }}
+                                                    className="flex-1 px-4 py-3 border-2 border-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-500 hover:border-orange-300 transition-all"
+                                                    placeholder="e.g., quick, vegetarian, beginner"
+                                                />
+                                                <div className="flex items-center gap-2 sm:w-auto">
+                                                    <span className="text-sm font-semibold text-gray-700">Color</span>
+                                                    <input
+                                                        type="color"
+                                                        value={newTagColor}
+                                                        onChange={(e) => setNewTagColor(e.target.value)}
+                                                        className="h-12 w-16 border-2 border-gray-200 rounded cursor-pointer bg-white"
+                                                        aria-label="Pick a tag color"
+                                                    />
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={handleAddTag}
+                                                    className="px-4 py-3 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition-colors"
+                                                >
+                                                    Add Tag
+                                                </button>
+                                            </div>
+                                            <div className="flex items-center gap-2 text-sm text-gray-500">
+                                                <span>Preview:</span>
+                                                <span
+                                                    className="inline-flex items-center gap-2 px-3 py-1 rounded-full border text-sm"
+                                                    style={{
+                                                        backgroundColor: getTagBackground(isValidHexColor(newTagColor) ? newTagColor : DEFAULT_TAG_COLOR),
+                                                        borderColor: isValidHexColor(newTagColor) ? newTagColor : DEFAULT_TAG_COLOR,
+                                                        color: '#1f2937'
+                                                    }}
+                                                >
+                                                    <span
+                                                        className="w-2.5 h-2.5 rounded-full"
+                                                        style={{ backgroundColor: isValidHexColor(newTagColor) ? newTagColor : DEFAULT_TAG_COLOR }}
+                                                    />
+                                                    <span className="font-medium">{newTag || 'Tag'}</span>
+                                                </span>
+                                                <span className="text-gray-400">(Pick a color and add to apply)</span>
+                                            </div>
                                         </div>
 
                                         {formData.tags && formData.tags.length > 0 && (
                                             <div className="mt-3 flex flex-wrap gap-2">
-                                                {formData.tags.map((tag) => (
-                                                    <span
-                                                        key={tag}
-                                                        className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-50 text-orange-700 border border-orange-200 text-sm"
-                                                    >
-                                                        {tag}
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleRemoveTag(tag)}
-                                                            className="text-orange-600 hover:text-orange-800"
-                                                            aria-label={`Remove ${tag}`}
+                                                {formData.tags.map((tag) => {
+                                                    const name = getTagName(tag);
+                                                    const color = getTagColor(tag);
+                                                    return (
+                                                        <span
+                                                            key={name || color}
+                                                            className="inline-flex items-center gap-2 px-3 py-1 rounded-full border text-sm"
+                                                            style={{
+                                                                backgroundColor: getTagBackground(color),
+                                                                borderColor: color,
+                                                                color: '#1f2937'
+                                                            }}
                                                         >
-                                                            <X size={14} />
-                                                        </button>
-                                                    </span>
-                                                ))}
+                                                            <span
+                                                                className="w-2.5 h-2.5 rounded-full"
+                                                                style={{ backgroundColor: color }}
+                                                            />
+                                                            <span className="font-medium">{name}</span>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleRemoveTag(tag)}
+                                                                className="text-gray-600 hover:text-orange-700"
+                                                                aria-label={`Remove ${name}`}
+                                                            >
+                                                                <X size={14} />
+                                                            </button>
+                                                        </span>
+                                                    );
+                                                })}
                                             </div>
                                         )}
                                     </div>

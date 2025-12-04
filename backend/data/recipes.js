@@ -3,25 +3,38 @@ import createHttpError from 'http-errors';
 import { dbConnection } from '../config/mongoConnection.js';
 
 const RECIPES_COLLECTION = 'recipes';
+const DEFAULT_TAG_COLOR = '#f97316';
 const escapeRegex = (text = '') => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const isValidHexColor = (value = '') => /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(value.trim());
+const normalizeTag = (tag) => {
+    if (typeof tag === 'string') {
+        const name = tag.trim();
+        if (!name) return null;
+        return { name, color: DEFAULT_TAG_COLOR };
+    }
+
+    if (tag && typeof tag === 'object') {
+        const name = (tag.name || tag.label || '').trim();
+        if (!name) return null;
+        const color = isValidHexColor(tag.color) ? tag.color : DEFAULT_TAG_COLOR;
+        return { name, color };
+    }
+
+    return null;
+};
 
 // Normalize tags: trim, drop empties, lowercase for dedupe but keep original casing consistent
 const sanitizeTags = (tags = []) => {
     if (!Array.isArray(tags)) return [];
-    const seen = new Set();
-    const cleaned = [];
+    const tagMap = new Map();
 
     for (const raw of tags) {
-        if (typeof raw !== 'string') continue;
-        const trimmed = raw.trim();
-        if (!trimmed) continue;
-        const key = trimmed.toLowerCase();
-        if (seen.has(key)) continue;
-        seen.add(key);
-        cleaned.push(trimmed);
+        const normalized = normalizeTag(raw);
+        if (!normalized) continue;
+        tagMap.set(normalized.name.toLowerCase(), normalized);
     }
 
-    return cleaned;
+    return Array.from(tagMap.values());
 };
 
 export async function createRecipe(recipeData) {
@@ -94,12 +107,20 @@ export async function getAllRecipes(filter = {}, requestingUser = null) {
         query.$and = andConditions;
     }
 
-    return await collection.find(query).sort({ createdAt: -1 }).toArray();
+    const recipes = await collection.find(query).sort({ createdAt: -1 }).toArray();
+    return recipes.map(recipe => ({
+        ...recipe,
+        tags: sanitizeTags(recipe.tags)
+    }));
 }
 export async function getRecipesByUser(username) {
     const db = await dbConnection();
     const collection = db.collection(RECIPES_COLLECTION);
-    return await collection.find({ username }).sort({ createdAt: -1 }).toArray();
+    const recipes = await collection.find({ username }).sort({ createdAt: -1 }).toArray();
+    return recipes.map(recipe => ({
+        ...recipe,
+        tags: sanitizeTags(recipe.tags)
+    }));
 }
 
 export async function getRecipeById(id) {
@@ -111,7 +132,11 @@ export async function getRecipeById(id) {
     } catch {
         throw createHttpError(400, 'Invalid recipe ID format');
     }
-    return await collection.findOne({ _id: objectId });
+    const recipe = await collection.findOne({ _id: objectId });
+    if (recipe) {
+        recipe.tags = sanitizeTags(recipe.tags);
+    }
+    return recipe;
 }
 
 export async function updateRecipe(id, updates, username) {
@@ -174,13 +199,29 @@ export async function removeTagFromUserRecipes(username, tagName) {
     const collection = db.collection(RECIPES_COLLECTION);
     const regex = new RegExp(`^${escapeRegex(normalizedTag)}$`, 'i');
 
+    const filter = {
+        username,
+        tags: {
+            $elemMatch: {
+                $or: [
+                    { $regex: regex },
+                    { name: { $regex: regex } }
+                ]
+            }
+        }
+    };
+
     const result = await collection.updateMany(
+        filter,
         {
-            username,
-            tags: { $regex: regex }
-        },
-        {
-            $pull: { tags: { $regex: regex } },
+            $pull: {
+                tags: {
+                    $or: [
+                        { $regex: regex },
+                        { name: { $regex: regex } }
+                    ]
+                }
+            },
             $set: { updatedAt: new Date() }
         }
     );

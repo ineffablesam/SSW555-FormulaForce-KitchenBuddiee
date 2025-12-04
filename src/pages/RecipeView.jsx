@@ -3,6 +3,20 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Clock, Users, ChefHat, Loader2, AlertCircle, ShoppingCart, Trash2, Lock, Unlock, Tag, X } from 'lucide-react';
 import { getCookie } from '../components/AuthDialog';
 
+const DEFAULT_TAG_COLOR = '#f97316';
+const isValidHexColor = (value = '') => /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(value.trim());
+const getTagName = (tag) => {
+    if (typeof tag === 'string') return tag;
+    return (tag?.name || tag?.label || '').trim();
+};
+const getTagColor = (tag) => {
+    if (tag && typeof tag === 'object' && isValidHexColor(tag.color)) {
+        return tag.color;
+    }
+    return DEFAULT_TAG_COLOR;
+};
+const getTagBackground = (color) => (color?.length === 7 ? `${color}20` : color || `${DEFAULT_TAG_COLOR}20`);
+
 export default function RecipeView() {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -184,6 +198,8 @@ export default function RecipeView() {
 
     const handleDeleteTag = async (tag) => {
         if (!recipe) return;
+        const tagName = getTagName(tag);
+        if (!tagName) return;
         const username = getCookie('username');
         if (!username || username !== recipe.username) {
             setCartMessage({ type: 'error', text: 'Only the owner can delete tags' });
@@ -192,8 +208,8 @@ export default function RecipeView() {
         }
 
         try {
-            setRemovingTag(tag);
-            const response = await fetch(`http://localhost:4000/api/recipes/tags/${encodeURIComponent(tag)}`, {
+            setRemovingTag(tagName);
+            const response = await fetch(`http://localhost:4000/api/recipes/tags/${encodeURIComponent(tagName)}`, {
                 method: 'DELETE',
                 credentials: 'include'
             });
@@ -205,12 +221,12 @@ export default function RecipeView() {
 
             setRecipe(prev => ({
                 ...prev,
-                tags: (prev.tags || []).filter(t => t.toLowerCase() !== tag.toLowerCase())
+                tags: (prev.tags || []).filter(t => getTagName(t).toLowerCase() !== tagName.toLowerCase())
             }));
 
             setCartMessage({
                 type: 'success',
-                text: `Removed tag "${tag}" from your recipes`
+                text: `Removed tag "${tagName}" from your recipes`
             });
             setTimeout(() => setCartMessage(null), 2500);
         } catch (err) {
@@ -649,26 +665,39 @@ export default function RecipeView() {
 
                         {recipe.tags && recipe.tags.length > 0 ? (
                             <div className="mt-4 flex flex-wrap gap-2">
-                                {recipe.tags.map((tag) => (
-                                    <span
-                                        key={tag}
-                                        className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-sm border border-gray-200"
-                                    >
-                                        <Tag size={14} className="text-orange-500" />
-                                        <span>{tag}</span>
-                                        {isOwner && (
-                                            <button
-                                                type="button"
-                                                onClick={() => handleDeleteTag(tag)}
-                                                disabled={removingTag === tag}
-                                                className="text-gray-500 hover:text-red-600 disabled:opacity-50"
-                                                title="Delete tag"
-                                            >
-                                                {removingTag === tag ? '...' : <X size={14} />}
-                                            </button>
-                                        )}
-                                    </span>
-                                ))}
+                                {recipe.tags.map((tag, idx) => {
+                                    const name = getTagName(tag);
+                                    const color = getTagColor(tag);
+                                    const isDeleting = removingTag === name;
+                                    return (
+                                        <span
+                                            key={name || idx}
+                                            className="inline-flex items-center gap-2 px-3 py-1 rounded-full border text-sm"
+                                            style={{
+                                                backgroundColor: getTagBackground(color),
+                                                borderColor: color,
+                                                color: '#1f2937'
+                                            }}
+                                        >
+                                            <span
+                                                className="w-2.5 h-2.5 rounded-full"
+                                                style={{ backgroundColor: color }}
+                                            />
+                                            <span className="font-medium">{name}</span>
+                                            {isOwner && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleDeleteTag(tag)}
+                                                    disabled={isDeleting}
+                                                    className="text-gray-500 hover:text-red-600 disabled:opacity-50"
+                                                    title="Delete tag"
+                                                >
+                                                    {isDeleting ? '...' : <X size={14} />}
+                                                </button>
+                                            )}
+                                        </span>
+                                    );
+                                })}
                             </div>
                         ) : (
                             isOwner && (
